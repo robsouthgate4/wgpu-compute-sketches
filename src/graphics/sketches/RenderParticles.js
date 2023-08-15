@@ -5,29 +5,29 @@ import { particleShader } from "./shaders/particleShader";
 
 export default class RenderParticles {
 
-    constructor(bolt, geometry, compute) {
+	constructor(bolt, geometry, compute) {
 
 		this._device = bolt.device;
-        this._compute = compute;
+		this._compute = compute;
 		this._triangleBuffer = null;
 		this._node = null;
 		this._viewUniformBuffer = null;
 		this._nodePipeline = null;
 		this._nodeBindGroup = null;
-        this._bolt = bolt;
-        this._geometry = geometry;
-        this._particleCount = 0;
-        this.init();
+		this._bolt = bolt;
+		this._geometry = geometry;
+		this._particleCount = 0;
+		this.init();
 
-    }
+	}
 
-    async init() {
+	async init() {
 
-        this._node = new Node();
+		this._node = new Node();
 		this._node.transform.positionY = 0;
 		this._node.transform.scale = vec3.fromValues(1.4, 1.4, 1.4);
 
-        // MESH GEOMETRY SETUP
+		// MESH GEOMETRY SETUP
 		const triangleArray = new Float32Array([
 			-0.5, -0.5, 0.0,
 			0.5, -0.5, 0.0,
@@ -58,9 +58,9 @@ export default class RenderParticles {
 				format: "float32x3"
 			}]
 		}
-		
+
 		const particleInstanceByteSize =
-		4 * Float32Array.BYTES_PER_ELEMENT;
+			4 * Float32Array.BYTES_PER_ELEMENT;
 
 		const particleInstanceLayout = {
 			// instanced particles buffer
@@ -87,7 +87,7 @@ export default class RenderParticles {
 			code: particleShader
 		});
 
-        // RENDER PIPELINE
+		// RENDER PIPELINE
 		this._viewUniformBuffer = this._device.createBuffer({
 			size: 16 * 2 * Float32Array.BYTES_PER_ELEMENT,
 			usage: window.GPUBufferUsage.UNIFORM | window.GPUBufferUsage.COPY_DST,
@@ -159,17 +159,17 @@ export default class RenderParticles {
 			},
 		})
 
-    }
+	}
 
-    update(camera) {
+	update(camera) {
 
-        this._device.queue.writeBuffer(this._viewUniformBuffer, 0, camera.projection);
+		this._device.queue.writeBuffer(this._viewUniformBuffer, 0, camera.projection);
 		this._device.queue.writeBuffer(this._viewUniformBuffer, 16 * Float32Array.BYTES_PER_ELEMENT, camera.view);
 
-        this._node.updateModelMatrix();
+		this._node.updateModelMatrix();
 		this._device.queue.writeBuffer(this._nodeUniformBuffer, 0, this._node.modelMatrix);
 
-        const renderEncoder = this._device.createCommandEncoder({
+		const renderEncoder = this._device.createCommandEncoder({
 			label: "render encoder"
 		});
 
@@ -182,20 +182,20 @@ export default class RenderParticles {
 			}]
 		});
 
-        renderPass.setPipeline(this._nodePipeline);
+		renderPass.setPipeline(this._nodePipeline);
 		renderPass.setBindGroup(0, this._nodeBindGroup);
 		renderPass.setVertexBuffer(0, this._triangleBuffer);
 		renderPass.setVertexBuffer(1, this._compute.particleBuffers[0]);
 		renderPass.draw(3, this._particleCount, 0, 0);
 
-        renderPass.end();
+		renderPass.end();
 
 		const renderCommandBuffer = renderEncoder.finish();
 		this._device.queue.submit([renderCommandBuffer]);
 
-    }
+	}
 
-    get particleCount () {
-        return this._particleCount;
-    }
+	get particleCount() {
+		return this._particleCount;
+	}
 }
