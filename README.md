@@ -1,4 +1,4 @@
-# Bolt WebGL examples repo
+# WGPU compute sketches
 
 ## Getting Started
 
