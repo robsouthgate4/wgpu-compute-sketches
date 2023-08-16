@@ -3,20 +3,29 @@ import { Node } from "bolt-wgpu";
 import { vec3 } from "gl-matrix";
 import { particleShader } from "./shaders/particleShader";
 
-export default class RenderParticles {
+export default class ParticleRenderer {
 
 	constructor(bolt, geometry, compute) {
 
+		this._bolt = bolt;
 		this._device = bolt.device;
 		this._compute = compute;
 		this._triangleBuffer = null;
 		this._node = null;
 		this._viewUniformBuffer = null;
-		this._nodePipeline = null;
+		this._pipeline = null;
 		this._nodeBindGroup = null;
 		this._bolt = bolt;
 		this._geometry = geometry;
 		this._particleCount = 0;
+		this._renderPassDescriptor = null;
+		this._particleInstanceLayout = null;
+		this._renderTexture = null;
+		this._renderTextureView = null;
+		this._depthTexture = null;
+		this._depthTextureView = null;
+		this._currentCanvasWidth = 0;
+		this._currentCanvasHeight = 0;
 		this.init();
 
 	}
@@ -62,7 +71,7 @@ export default class RenderParticles {
 		const particleInstanceByteSize =
 			4 * Float32Array.BYTES_PER_ELEMENT;
 
-		const particleInstanceLayout = {
+		this._particleInstanceLayout = {
 			// instanced particles buffer
 			arrayStride: particleInstanceByteSize,
 			stepMode: 'instance',
@@ -132,7 +141,7 @@ export default class RenderParticles {
 			bindGroupLayouts: [nodeBindGroupLayout],
 		});
 
-		this._nodePipeline = this._device.createRenderPipeline({
+		this._pipeline = this._device.createRenderPipeline({
 			label: "particle render pipeline",
 			layout: nodePipelineLayout,
 			vertex: {
@@ -140,7 +149,7 @@ export default class RenderParticles {
 				entryPoint: "vs",
 				buffers: [
 					vertexBufferLayout,
-					particleInstanceLayout
+					this._particleInstanceLayout
 				]
 			},
 			fragment: {
@@ -150,7 +159,12 @@ export default class RenderParticles {
 					format: this._bolt.presentationFormat
 				}]
 			},
-			multiSample: {
+			depthStencil: {
+				depthWriteEnabled: true,
+				depthCompare: 'less',
+				format: 'depth24plus',
+			},
+			multisample: {
 				count: 4,
 			},
 			primitive: {
@@ -159,6 +173,37 @@ export default class RenderParticles {
 			},
 		})
 
+		this.resizeTextures();
+
+	}
+
+	resize() {
+
+	}
+
+	resizeTextures() {
+
+		if (this._renderTexture) {
+			this._renderTexture.destroy();
+		}
+
+		this._renderTexture = this._device.createTexture({
+			size: [this._bolt.canvas.width, this._bolt.canvas.height],
+			format: this._bolt.presentationFormat,
+			sampleCount: 4,
+			usage: window.GPUTextureUsage.RENDER_ATTACHMENT,
+		});
+
+		this._renderTextureView = this._renderTexture.createView();
+
+		this._depthTexture = this._device.createTexture({
+			size: [this._bolt.canvas.width, this._bolt.canvas.height],
+			format: 'depth24plus',
+			sampleCount: 4,
+			usage: window.GPUTextureUsage.RENDER_ATTACHMENT,
+		});
+
+		this._depthTextureView = this._depthTexture.createView();
 	}
 
 	update(camera) {
@@ -173,16 +218,32 @@ export default class RenderParticles {
 			label: "render encoder"
 		});
 
-		const renderPass = renderEncoder.beginRenderPass({
-			colorAttachments: [{
-				view: this._bolt.context.getCurrentTexture().createView(),
-				loadOp: "clear",
-				clearValue: { r: 0, g: 0, b: 0, a: 1 }, // New line
-				storeOp: "store"
-			}]
-		});
 
-		renderPass.setPipeline(this._nodePipeline);
+		if (this._currentCanvasWidth !== this._bolt.canvas.width || this._currentCanvasHeight !== this._bolt.canvas.height) {
+			this.resizeTextures();
+			this._currentCanvasWidth = this._bolt.canvas.width;
+			this._currentCanvasHeight = this._bolt.canvas.height;
+		}
+
+		this._renderPassDescriptor = {
+			colorAttachments: [{
+				view: this._renderTextureView,
+				resolveTarget: this._bolt.context.getCurrentTexture().createView(),
+				clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
+				loadOp: 'clear',
+				storeOp: 'store',
+			}],
+			depthStencilAttachment: {
+				view: this._depthTextureView,
+				depthClearValue: 1,
+				depthLoadOp: 'clear',
+				depthStoreOp: 'store',
+			}
+		}
+
+		const renderPass = renderEncoder.beginRenderPass(this._renderPassDescriptor);
+
+		renderPass.setPipeline(this._pipeline);
 		renderPass.setBindGroup(0, this._nodeBindGroup);
 		renderPass.setVertexBuffer(0, this._triangleBuffer);
 		renderPass.setVertexBuffer(1, this._compute.particleBuffers[0]);
@@ -193,6 +254,10 @@ export default class RenderParticles {
 		const renderCommandBuffer = renderEncoder.finish();
 		this._device.queue.submit([renderCommandBuffer]);
 
+	}
+
+	get viewUniformBuffer() {
+		return this._viewUniformBuffer
 	}
 
 	get particleCount() {

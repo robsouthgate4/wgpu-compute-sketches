@@ -4,7 +4,8 @@ import CameraMain from "../../globals/CameraMain";
 import Controls from "../../globals/Controls";
 import { BoltWGPU, Sphere } from "bolt-wgpu";
 import Compute from "./Compute";
-import RenderParticles from "./RenderParticles";
+import ParticleRenderer from "./ParticleRenderer";
+import ShadowRenderer from "./ShadowRenderer";
 
 
 export default class extends Base {
@@ -39,7 +40,8 @@ export default class extends Base {
 			particleCount
 		});	
 
-		this._renderParticles = new RenderParticles(this._bolt, geometry, this._compute);
+		this._particleRenderer = new ParticleRenderer(this._bolt, geometry, this._compute);
+		this._shadowRenderer = new ShadowRenderer(this._bolt, this._particleRenderer);
 
 		this.start();
 
@@ -49,6 +51,8 @@ export default class extends Base {
 
 
 	resize() {
+		this._particleRenderer.resize();
+		this._shadowRenderer.resize();
 		this._bolt.resizeCanvasToDisplay();
 		this._cameraMain.updateProjection(window.innerWidth / window.innerHeight);
 	}
@@ -62,7 +66,7 @@ export default class extends Base {
 		this._compute.update(elapsed, delta);
 		this._controls.update();
 		this._cameraMain.update();
-		this._renderParticles.update(this._cameraMain);
+		this._particleRenderer.update(this._cameraMain);
 
 	}
 

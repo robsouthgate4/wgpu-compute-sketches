@@ -32,7 +32,7 @@ export const particleShader = /* wgsl */`
         var mvp = camera.projection * modelView;
 
         out.position = mvp * vec4(pos.xyz, 1);
-        out.color = vec4( 0.6, 0.8, 0.8, 0.0 );
+        out.color = vec4( 0.8, 0.8, 0.8, 0.0 );
         return out;
     }
 
