@@ -246,7 +246,7 @@ export default class ParticleRenderer {
 		renderPass.setPipeline(this._pipeline);
 		renderPass.setBindGroup(0, this._nodeBindGroup);
 		renderPass.setVertexBuffer(0, this._triangleBuffer);
-		renderPass.setVertexBuffer(1, this._compute.particleBuffers[0]);
+		renderPass.setVertexBuffer(1, this._compute.particleBuffers);
 		renderPass.draw(3, this._particleCount, 0, 0);
 
 		renderPass.end();

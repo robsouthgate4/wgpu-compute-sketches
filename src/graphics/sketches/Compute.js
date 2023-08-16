@@ -12,6 +12,14 @@ export default class Compute {
         this._particleCount = particleCount;
         this._startData = startData;
         this._device = this._bolt.device;
+        this._particleBuffer = null;
+        this._uniformBuffer = null;
+        this._uniformData = null;
+        this._computePipeline = null;
+        this._computeBindGroup = null;
+        this._readCPUBuffer = null;
+        this._startPositionBuffer = null;
+        
 
         this.init();
 
@@ -98,15 +106,13 @@ export default class Compute {
             },
         });
 
-        this._particleBuffers = [
-            this._device.createBuffer({
-                label: 'particle buffer A',
-                size: particleStartPositions.byteLength,
-                usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
-            }),
-        ];
+        this._particleBuffer = this._device.createBuffer({
+            label: 'particle buffer A',
+            size: particleStartPositions.byteLength,
+            usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+        }),
 
-        this._device.queue.writeBuffer(this._particleBuffers[0], 0, particleStartPositions);
+        this._device.queue.writeBuffer(this._particleBuffer, 0, particleStartPositions);
 
         // create a buffer on the GPU to get a copy of the results
         this._readCPUBuffer = this._device.createBuffer({
@@ -118,17 +124,15 @@ export default class Compute {
 
         // Setup a bindGroup to tell the shader which
         // buffer to use for the computation
-        this._computeBindGroups = [
-            this._device.createBindGroup({
-                label: 'bindGroup A',
-                layout: bindGroupLayout,
-                entries: [
-                    { binding: 0, resource: { buffer: this._startPositionBuffer } },
-                    { binding: 1, resource: { buffer: this._particleBuffers[0] } },
-                    { binding: 2, resource: { buffer: this._uniformBuffer } }
-                ],
-            }),
-        ];
+        this._computeBindGroup = this._device.createBindGroup({
+            label: 'bindGroup A',
+            layout: bindGroupLayout,
+            entries: [
+                { binding: 0, resource: { buffer: this._startPositionBuffer } },
+                { binding: 1, resource: { buffer: this._particleBuffer } },
+                { binding: 2, resource: { buffer: this._uniformBuffer } }
+            ],
+        });
     }
 
     async update(elapsed, delta) {
@@ -147,11 +151,11 @@ export default class Compute {
         this._device.queue.writeBuffer(this._uniformBuffer, 0, this._uniformData);
 
         computePass.setPipeline(this._computePipeline);
-        computePass.setBindGroup(0, this._computeBindGroups[0]);
+        computePass.setBindGroup(0, this._computeBindGroup);
         computePass.dispatchWorkgroups(Math.ceil((this._particleCount) / WORK_GROUP_SIZE));
         computePass.end();
 
-        //computeEncoder.copyBufferToBuffer(this._particleBuffers[0], 0, this._readCPUBuffer, 0, this._readCPUBuffer.size);
+        //computeEncoder.copyBufferToBuffer(this._particleBuffer, 0, this._readCPUBuffer, 0, this._readCPUBuffer.size);
 
         const computeCommandBuffer = computeEncoder.finish();
         this._device.queue.submit([computeCommandBuffer]);
@@ -165,7 +169,7 @@ export default class Compute {
     }
 
     get particleBuffers() {
-        return this._particleBuffers;
+        return this._particleBuffer;
     }
 
 }
