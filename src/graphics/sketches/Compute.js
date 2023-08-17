@@ -8,16 +8,16 @@ export default class Compute {
         particleCount = 50000,
     }) {
 
-        this._bolt = bolt;
-        this._particleCount = particleCount;
-        this._startData = startData;
-        this._device = this._bolt.device;
-        this._particleBuffer = null;
-        this._uniformBuffer = null;
-        this._uniformData = null;
-        this._computePipeline = null;
-        this._computeBindGroup = null;
-        this._readCPUBuffer = null;
+        this._bolt                = bolt;
+        this._particleCount       = particleCount;
+        this._startData           = startData;
+        this._device              = this._bolt.device;
+        this._particleBuffer      = null;
+        this._uniformBuffer       = null;
+        this._uniformData         = null;
+        this._computePipeline     = null;
+        this._computeBindGroup    = null;
+        this._readCPUBuffer       = null;
         this._startPositionBuffer = null;
         
 
@@ -46,15 +46,15 @@ export default class Compute {
 
             const stride = 4;
 
-            startPositionData[i * stride] = this._startData[i * 3] * 1; // posX
-            startPositionData[i * stride + 1] = this._startData[i * 3 + 1] * 1; // posY
-            startPositionData[i * stride + 2] = this._startData[i * 3 + 2] * 1; // posZ
-            startPositionData[i * stride + 3] = 0.01; // lifetime
+            startPositionData[i * stride]     = this._startData[i * 3] * 1;      // posX
+            startPositionData[i * stride + 1] = this._startData[i * 3 + 1] * 1;  // posY
+            startPositionData[i * stride + 2] = this._startData[i * 3 + 2] * 1;  // posZ
+            startPositionData[i * stride + 3] = 0.01;                            // lifetime
 
-            particleStartPositions[i * stride] = 0; // posX
-            particleStartPositions[i * stride + 1] = 0; // posY
-            particleStartPositions[i * stride + 2] = 0; // posZ
-            particleStartPositions[i * stride + 3] = (Math.random() * 2 - 1); // lifetime
+            particleStartPositions[i * stride]     = 0;                        // posX
+            particleStartPositions[i * stride + 1] = 0;                        // posY
+            particleStartPositions[i * stride + 2] = 0;                        // posZ
+            particleStartPositions[i * stride + 3] = (Math.random() * 2 - 1);  // lifetime
 
         }
 
@@ -116,9 +116,9 @@ export default class Compute {
 
         // create a buffer on the GPU to get a copy of the results
         this._readCPUBuffer = this._device.createBuffer({
-            label: 'result buffer',
-            size: particleStartPositions.byteLength,
-            usage: window.GPUBufferUsage.MAP_READ | window.GPUBufferUsage.COPY_DST,
+            label        : 'result buffer',
+            size         : particleStartPositions.byteLength,
+            usage        : window.GPUBufferUsage.MAP_READ | window.GPUBufferUsage.COPY_DST,
             mapAtCreation: false,
         });
 

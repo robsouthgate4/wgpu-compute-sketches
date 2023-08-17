@@ -1,4 +1,4 @@
-export const curlNoise = () => /* wgsl */`
+export const curlNoiseShader = () => /* wgsl */`
 
     fn t1() -> f32 {
         return (uniforms.time * uniforms.curlTime) * 0.5432895;
