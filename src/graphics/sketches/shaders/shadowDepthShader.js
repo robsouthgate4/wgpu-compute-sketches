@@ -16,8 +16,7 @@ export const shadowDepthShader = /* wgsl */`
     };
 
     struct VertexOutput {
-        @builtin(position) position: vec4f,
-        @location(0) color: vec4f,
+        @builtin(position) position: vec4f
     };
 
    fn applyQuaternion( q: vec4f, v: vec3f ) -> vec3f {
@@ -58,11 +57,10 @@ export const shadowDepthShader = /* wgsl */`
 
         var modelView = light.view * model;
 
-        // billboard the particles
         var mvp = light.projection * modelView;
 
         out.position = mvp * vec4(pos.xyz, 1);
-        out.color = vec4( 0.8, 0.8, 0.8, 0.0 );
+
         return out;
     }
     

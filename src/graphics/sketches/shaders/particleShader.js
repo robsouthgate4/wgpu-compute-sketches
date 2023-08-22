@@ -6,8 +6,17 @@ export const particleShader = /* wgsl */`
         quaternion: vec4f,
     };
 
+    struct Light {
+        projection: mat4x4f,
+        view: mat4x4f
+    };
+
     @group(0) @binding(0) var<uniform> camera : Camera;
     @group(0) @binding(1) var<uniform> model : mat4x4f;
+    @group(0) @binding(2) var<uniform> light : Light;
+    @group(0) @binding(3) var shadowMap: texture_depth_2d;
+    @group(0) @binding(4) var shadowSampler: sampler;
+
 
     struct VertexInput {
         @location(0) position: vec3f,
@@ -18,6 +27,7 @@ export const particleShader = /* wgsl */`
     struct VertexOutput {
         @builtin(position) position: vec4f,
         @location(0) color: vec4f,
+        @location(1) shadowCoord: vec3f
     };
 
    fn applyQuaternion( q: vec4f, v: vec3f ) -> vec3f {
@@ -48,6 +58,13 @@ export const particleShader = /* wgsl */`
 
     @vertex fn vs( in: VertexInput ) -> VertexOutput {
         var out: VertexOutput;
+
+        var posFromLight = light.projection * light.view * model * vec4(in.position.xyz, 1);
+
+        out.shadowCoord = vec3(
+            posFromLight.xy * vec2(0.5 - 0.5) + vec2(0.5),
+            posFromLight.z
+        );
 
         var pos = in.position.xyz * 0.005;
 

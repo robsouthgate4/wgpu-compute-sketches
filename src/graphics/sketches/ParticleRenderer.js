@@ -1,22 +1,22 @@
 
-import { Node } from "bolt-wgpu";
-import { vec3 } from "gl-matrix";
 import { particleShader } from "./shaders/particleShader";
 
 export default class ParticleRenderer {
 
-	constructor(bolt, geometry, compute) {
+	constructor(bolt, sharedData) {
 
 		this._bolt                   = bolt;
 		this._device                 = bolt.device;
-		this._compute                = compute;
-		this._triangleBuffer         = null;
-		this._node                   = null;
-		this._viewUniformBuffer      = null;
+		this._compute                = sharedData.compute;
+		this._light                  = sharedData.light;
+		this._lightUniformBuffer     = sharedData.lightUniformBuffer;
+		this._triangleBuffer         = sharedData.triangleBuffer;
+		this._sceneUniformBuffer     = sharedData.sceneUniformBuffer;
+		this._nodeUniformBuffer      = sharedData.nodeUniformBuffer;
+		this._particleCount          = sharedData.particleCount;
+		this._shadowTexture          = sharedData.shadowTexture;
 		this._pipeline               = null;
 		this._bindGroup              = null;
-		this._geometry               = geometry;
-		this._particleCount          = 0;
 		this._renderPassDescriptor   = null;
 		this._particleInstanceLayout = null;
 		this._renderTexture          = null;
@@ -29,10 +29,6 @@ export default class ParticleRenderer {
 	}
 
 	async init() {
-
-		this._node                     = new Node();
-		this._node.transform.positionY = 0;
-		this._node.transform.scale     = vec3.fromValues(1.4, 1.4, 1.4);
 
 		// MESH GEOMETRY SETUP
 		const triangleArray = new Float32Array([
@@ -48,11 +44,6 @@ export default class ParticleRenderer {
 		})
 
 		this._device.queue.writeBuffer(this._triangleBuffer, 0, triangleArray);
-
-		const { positions } = this._geometry;
-		const startData = new Float32Array(positions);
-
-		this._particleCount = startData.length / 3;
 
 		this._vertexBufferLayout = {
 			arrayStride: 3 * Float32Array.BYTES_PER_ELEMENT,
@@ -92,23 +83,6 @@ export default class ParticleRenderer {
 			code: particleShader
 		});
 
-		const uniformBufferSize =  // view matrix + projection matrix + quaternion
-			16 * Float32Array.BYTES_PER_ELEMENT +
-			16 * Float32Array.BYTES_PER_ELEMENT +
-			4 * Float32Array.BYTES_PER_ELEMENT;
-
-		this._viewUniformBuffer = this._device.createBuffer({
-			size: uniformBufferSize,
-			usage: window.GPUBufferUsage.UNIFORM | window.GPUBufferUsage.COPY_DST,
-		});
-
-		this._nodeUniformBuffer = this._device.createBuffer({
-			size: 16 * Float32Array.BYTES_PER_ELEMENT,
-			usage: window.GPUBufferUsage.UNIFORM | window.GPUBufferUsage.COPY_DST,
-		});
-
-		this._device.queue.writeBuffer(this._nodeUniformBuffer, 0, this._node.modelMatrix);
-
 		const bindGroupLayout = this._device.createBindGroupLayout({
 			entries: [
 				{
@@ -119,8 +93,25 @@ export default class ParticleRenderer {
 					binding: 1,
 					visibility: window.GPUShaderStage.VERTEX,
 					buffer: { type: "uniform" },
+				}, {
+					binding: 2,
+					visibility: window.GPUShaderStage.VERTEX,
+					buffer: { type: "uniform" },
+				}, {
+					binding: 3,
+					visibility: window.GPUShaderStage.FRAGMENT,
+					texture: { sampleType: "depth" },
+				}, {
+					binding: 4,
+					visibility: window.GPUShaderStage.FRAGMENT,
+					sampler: { type: "filtering" },
 				}
 			],
+		});
+
+		const shadowSampler = this._device.createSampler({
+			magFilter: "linear",
+			minFilter: "linear",
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -128,12 +119,24 @@ export default class ParticleRenderer {
 			entries: [
 				{
 					binding: 0,
-					resource: { buffer: this._viewUniformBuffer },
+					resource: { buffer: this._sceneUniformBuffer },
 				},
 				{
 					binding: 1,
 					resource: { buffer: this._nodeUniformBuffer },
 				},
+				{
+					binding: 2,
+					resource: { buffer: this._lightUniformBuffer },
+				},
+				{
+					binding: 3,
+					resource: this._shadowTexture.createView(),
+				},
+				{
+					binding: 4,
+					resource: shadowSampler,
+				}
 			],
 		});
 
@@ -169,7 +172,6 @@ export default class ParticleRenderer {
 			},
 			primitive: {
 				topology: 'triangle-list',
-				//cullMode: 'back',
 			},
 		})
 
@@ -206,26 +208,13 @@ export default class ParticleRenderer {
 		this._depthTextureView = this._depthTexture.createView();
 	}
 
-	update(camera) {
-
-		this._device.queue.writeBuffer(this._viewUniformBuffer, 0, new Float32Array([
-			...camera.projection,
-			...camera.view,
-			...camera.transform.quaternion
-		]));
-
-		this._node.updateModelMatrix();
-		this._device.queue.writeBuffer(this._nodeUniformBuffer, 0, this._node.modelMatrix);
-
-		const renderEncoder = this._device.createCommandEncoder({
-			label: "render encoder"
-		});
+	update(camera, commandEncoder) {
 
 		this._renderPassDescriptor = {
 			colorAttachments: [{
 				view: this._renderTextureView,
 				resolveTarget: this._bolt.context.getCurrentTexture().createView(),
-				clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
+				clearValue: { r: 0, g: 0, b: 0, a: 1 },
 				loadOp: 'clear',
 				storeOp: 'store',
 			}],
@@ -237,7 +226,7 @@ export default class ParticleRenderer {
 			}
 		}
 
-		const renderPass = renderEncoder.beginRenderPass(this._renderPassDescriptor);
+		const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
 
 		renderPass.setPipeline(this._pipeline);
 		renderPass.setBindGroup(0, this._bindGroup);
@@ -247,8 +236,6 @@ export default class ParticleRenderer {
 
 		renderPass.end();
 
-		const renderCommandBuffer = renderEncoder.finish();
-		this._device.queue.submit([renderCommandBuffer]);
 
 	}
 
@@ -265,7 +252,7 @@ export default class ParticleRenderer {
 	}
 
 	get viewUniformBuffer() {
-		return this._viewUniformBuffer
+		return this._sceneUniformBuffer
 	}
 
 	get nodeUniformBuffer() {
