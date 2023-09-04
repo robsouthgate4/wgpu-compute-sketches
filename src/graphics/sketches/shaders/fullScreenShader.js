@@ -41,8 +41,8 @@ export const fullScreen = /* wgsl */`
         var st = in.uv;
 
         st.x *= uniforms.resolution.x / uniforms.resolution.y;
-        st *= 2.0;
-        st.y -= 1.0;
+        st *= 1.0;
+        //st.y -= 1.0;
 
         if(st.x > 1.0 || st.x < 0.0 || st.y > 1.0 || st.y < 0.0) {
             discard;

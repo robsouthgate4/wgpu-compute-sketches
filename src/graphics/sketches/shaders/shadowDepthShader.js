@@ -48,12 +48,12 @@ export const shadowDepthShader = /* wgsl */`
     @vertex fn vs( in: VertexInput ) -> VertexOutput {
         var out: VertexOutput;
 
-        var pos = in.position.xyz * 0.005;
+        var pos = in.position.xyz;// * 0.012;
 
         // apply quaternion
-        pos = applyQuaternion( light.quaternion, pos );
+        //pos = applyQuaternion( light.quaternion, pos );
 
-        pos += in.offset.xyz;
+        //pos += in.offset.xyz;
 
         var modelView = light.view * model;
 

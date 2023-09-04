@@ -15,7 +15,7 @@ export const particleShader = /* wgsl */`
     @group(0) @binding(1) var<uniform> model : mat4x4f;
     @group(0) @binding(2) var<uniform> light : Light;
     @group(0) @binding(3) var shadowMap: texture_depth_2d;
-    @group(0) @binding(4) var shadowSampler: sampler;
+    @group(0) @binding(4) var shadowSampler: sampler_comparison;
 
 
     struct VertexInput {
@@ -66,24 +66,42 @@ export const particleShader = /* wgsl */`
             posFromLight.z
         );
 
-        var pos = in.position.xyz * 0.005;
+        var pos = in.position.xyz * 0.012;
 
         // apply quaternion
         pos = applyQuaternion( camera.quaternion, pos );
 
         pos += in.offset.xyz;
 
-        var modelView = camera.view * model;
-
         // billboard the particles
-        var mvp = camera.projection * modelView;
+        var mvp = camera.projection * camera.view * model;
 
         out.position = mvp * vec4(pos.xyz, 1);
-        out.color = vec4( 0.8, 0.8, 0.8, 0.0 );
+        out.color = vec4( 0.0, 0.0, 0.0, 1.0 );
         return out;
     }
 
     @fragment fn fs( in: VertexOutput ) -> @location(0) vec4f {
-        return vec4( in.color );
+
+        // var visibility = 0.0;
+        // let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
+        // for (var y = -1; y <= 1; y++) {
+        //     for (var x = -1; x <= 1; x++) {
+        //         let offset = vec2<f32>(vec2(x, y)) * oneOverShadowDepthTextureSize;
+
+        //         visibility += textureSampleCompare(
+        //             shadowMap, shadowSampler,
+        //             in.shadowCoord.xy + offset, in.shadowCoord.z - 0.007
+        //         );
+        //     }
+        // }
+        // visibility /= 9.0;
+
+        var shadow = textureSampleCompare(
+            shadowMap, shadowSampler,
+            in.shadowCoord.xy, in.shadowCoord.z - 0.007
+        );
+
+        return vec4( 1.0, 0.0, 0.0, 1.0 );
     }
 `

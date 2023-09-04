@@ -104,14 +104,13 @@ export default class ParticleRenderer {
 				}, {
 					binding: 4,
 					visibility: window.GPUShaderStage.FRAGMENT,
-					sampler: { type: "filtering" },
+					sampler: { type: "comparison" },
 				}
 			],
 		});
 
 		const shadowSampler = this._device.createSampler({
-			magFilter: "linear",
-			minFilter: "linear",
+			compare: "less"
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -185,56 +184,16 @@ export default class ParticleRenderer {
 
 	resizeTextures() {
 
-		if (this._renderTexture) {
-			this._renderTexture.destroy();
-		}
-
-		this._renderTexture = this._device.createTexture({
-			size: [this._bolt.canvas.width, this._bolt.canvas.height],
-			format: this._bolt.presentationFormat,
-			sampleCount: 4,
-			usage: window.GPUTextureUsage.RENDER_ATTACHMENT,
-		});
-
-		this._renderTextureView = this._renderTexture.createView();
-
-		this._depthTexture = this._device.createTexture({
-			size: [this._bolt.canvas.width, this._bolt.canvas.height],
-			format: 'depth24plus',
-			sampleCount: 4,
-			usage: window.GPUTextureUsage.RENDER_ATTACHMENT,
-		});
-
-		this._depthTextureView = this._depthTexture.createView();
+		
 	}
 
-	update(camera, commandEncoder) {
-
-		this._renderPassDescriptor = {
-			colorAttachments: [{
-				view: this._renderTextureView,
-				resolveTarget: this._bolt.context.getCurrentTexture().createView(),
-				clearValue: { r: 0, g: 0, b: 0, a: 1 },
-				loadOp: 'clear',
-				storeOp: 'store',
-			}],
-			depthStencilAttachment: {
-				view: this._depthTextureView,
-				depthClearValue: 1,
-				depthLoadOp: 'clear',
-				depthStoreOp: 'store',
-			}
-		}
-
-		const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
+	update(renderPass) {
 
 		renderPass.setPipeline(this._pipeline);
 		renderPass.setBindGroup(0, this._bindGroup);
 		renderPass.setVertexBuffer(0, this._triangleBuffer);
 		renderPass.setVertexBuffer(1, this._compute.particleBuffers);
 		renderPass.draw(3, this._particleCount, 0, 0);
-
-		renderPass.end();
 
 
 	}
