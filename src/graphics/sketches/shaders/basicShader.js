@@ -13,9 +13,9 @@ export const basicShader = /* wgsl */`
 
     @group(0) @binding(0) var<uniform> camera : Camera;
     @group(0) @binding(1) var<uniform> model : mat4x4f;
-    //@group(0) @binding(2) var<uniform> light : Light;
-    // @group(0) @binding(3) var shadowMap: texture_depth_2d;
-    // @group(0) @binding(4) var shadowSampler: sampler_comparison;
+    @group(0) @binding(2) var<uniform> light : Light;
+    @group(0) @binding(3) var shadowMap: texture_depth_2d;
+    @group(0) @binding(4) var shadowSampler: sampler_comparison;
 
 
     struct VertexInput {

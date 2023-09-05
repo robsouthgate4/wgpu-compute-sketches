@@ -10,7 +10,7 @@ export default class CameraMain extends CameraPersp {
       fov: 45,
       near: 0.1,
       far: 1000,
-      position: vec3.fromValues(0, 0, 10),
+      position: vec3.fromValues(0, 0, 13),
       target: vec3.fromValues(0, 0, 0),
     });
     this._instance = null;

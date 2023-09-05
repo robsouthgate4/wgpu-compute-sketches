@@ -97,12 +97,17 @@ export default class RenderFullScreen {
 					format: this._bolt.presentationFormat
 				}]
             },
-            primitive: {
-                topology: "triangle-list"
-            },
-            multisample: {
-                count: 4
-            }
+			depthStencil: {
+				depthWriteEnabled: true,
+				depthCompare: 'less',
+				format: 'depth24plus',
+			},
+			multisample: {
+				count: 4,
+			},
+			primitive: {
+				topology: 'triangle-list',
+			},
         });
 
         this.resizeTextures();
@@ -110,19 +115,6 @@ export default class RenderFullScreen {
     }
 
     resizeTextures() {
-
-        if (this._renderTexture) {
-			this._renderTexture.destroy();
-		}
-
-		this._renderTexture = this._device.createTexture({
-			size: [this._bolt.canvas.width, this._bolt.canvas.height],
-			format: this._bolt.presentationFormat,
-			sampleCount: 4,
-			usage: window.GPUTextureUsage.RENDER_ATTACHMENT,
-		});
-
-		this._renderTextureView = this._renderTexture.createView();
 
         this._uniformData[0] = this._bolt.canvas.width;
         this._uniformData[1] = this._bolt.canvas.height;
@@ -139,27 +131,11 @@ export default class RenderFullScreen {
         
     }
 
-    render( commandEncoder ) {
-
-        this._renderPassDescriptor = {
-            colorAttachments: [
-                {
-                    view: this._renderTextureView,
-                    resolveTarget: this._bolt.context.getCurrentTexture().createView(),
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
-                    loadOp: "clear",
-                    storeOp: "store",
-                }
-            ],
-        };
-
-        const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
+    render( renderPass ) {
 
         renderPass.setPipeline(this._pipeline);
         renderPass.setBindGroup(0, this._bindGroup);
         renderPass.draw(3);
-        
-        renderPass.end();
 
     }
 }

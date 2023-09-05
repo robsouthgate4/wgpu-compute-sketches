@@ -140,12 +140,22 @@ export default class extends Base {
 			shadowTexture     : this._shadowDepthTexture,
 		}
 
-		this._shadowRenderer   = new ShadowRenderer(this._bolt, sharedData);
+		//this._shadowRenderer   = new ShadowRenderer(this._bolt, sharedData);
 		this._particleRenderer = new ParticleRenderer(this._bolt, sharedData);
 		this._renderFullScreen = new RenderFullScreen(this._bolt, this._shadowDepthTexture);
 		this._objectRenderer   = new GeometryRenderer(this._bolt, sharedData, sphereGeometry, basicShader);
-
 		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, basicShader);
+
+		this._objectShadowRenderer = new ShadowRenderer(
+										this._bolt, 
+										sharedData, 
+										this._objectRenderer.vertexBufferLayout,
+										this._objectRenderer.interleavedBuffer,
+										this._objectRenderer.nodeUniformBuffer,
+										this._objectRenderer.indexBuffer,
+										this._objectRenderer.indexCount
+									);
+
 		this._floorRenderer.node.transform.positionY = -1.5;
 		this._floorRenderer.node.transform.scale = vec3.fromValues(10, 10, 1);
 		this._floorRenderer.node.transform.rotationX = -90;
@@ -207,6 +217,7 @@ export default class extends Base {
 			this._renderFullScreen.resizeTextures();
 			this._currentCanvasWidth  = this._bolt.canvas.width;
 			this._currentCanvasHeight = this._bolt.canvas.height;
+
 		}
 
 		this._device.queue.writeBuffer(this._sceneUniformBuffer, 0, new Float32Array([
@@ -239,18 +250,20 @@ export default class extends Base {
 			}
 		}
 
+		this._objectShadowRenderer.draw(commandEncoder);
+		
 		const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
 		
 		//this._shadowRenderer.update(commandEncoder);
 		//this._particleRenderer.update(renderPass);
-
-		//this._renderFullScreen.render(commandEncoder);
-
+		
+		
 		this._objectRenderer.draw(renderPass);
 		this._floorRenderer.draw(renderPass);
-
+		this._renderFullScreen.render(renderPass);
+		
 		renderPass.end();
-
+		
 		this._device.queue.submit([commandEncoder.finish()]);
 		
 	}

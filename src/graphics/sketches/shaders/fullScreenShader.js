@@ -41,16 +41,16 @@ export const fullScreen = /* wgsl */`
         var st = in.uv;
 
         st.x *= uniforms.resolution.x / uniforms.resolution.y;
-        st *= 1.0;
+        st *= 2.0;
         //st.y -= 1.0;
 
         if(st.x > 1.0 || st.x < 0.0 || st.y > 1.0 || st.y < 0.0) {
             discard;
         }
 
-        var depth = textureSample(tex, sampleTexture, st);
+        var col = textureSample(tex, sampleTexture, st);
 
-        return vec4(vec3(depth), 1.0);
+        return vec4(vec3(col), 1.0);
 
     }
 

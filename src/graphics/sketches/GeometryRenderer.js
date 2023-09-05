@@ -10,7 +10,8 @@ export default class GeometryRenderer {
 		this._geometry             = geometry;
 		this._light                = sharedData.light;
 		this._lightUniformBuffer   = sharedData.lightUniformBuffer;
-		this._sceneUniformBuffer   = sharedData.sceneUniformBuffer;	
+		this._sceneUniformBuffer   = sharedData.sceneUniformBuffer;
+		this._shadowTexture 	   = sharedData.shadowTexture;		
 		this._pipeline             = null;
 		this._bindGroup            = null;
 		this._renderPassDescriptor = null;
@@ -109,26 +110,26 @@ export default class GeometryRenderer {
 					visibility: window.GPUShaderStage.VERTEX,
 					buffer: { type: "uniform" },
 				}, 
-				// {
-				// 	binding: 2,
-				// 	visibility: window.GPUShaderStage.VERTEX,
-				// 	buffer: { type: "uniform" },
-				// }, 
-				//{
-				// 	binding: 3,
-				// 	visibility: window.GPUShaderStage.FRAGMENT,
-				// 	texture: { sampleType: "depth" },
-				// }, {
-				// 	binding: 4,
-				// 	visibility: window.GPUShaderStage.FRAGMENT,
-				// 	sampler: { type: "comparison" },
-				// }
+				{
+					binding: 2,
+					visibility: window.GPUShaderStage.VERTEX,
+					buffer: { type: "uniform" },
+				}, 
+				{
+					binding: 3,
+					visibility: window.GPUShaderStage.FRAGMENT,
+					texture: { sampleType: "depth" },
+				}, {
+					binding: 4,
+					visibility: window.GPUShaderStage.FRAGMENT,
+					sampler: { type: "comparison" },
+				}
 			],
 		});
 
-		// const shadowSampler = this._device.createSampler({
-		// 	compare: "less"
-		// });
+		const shadowSampler = this._device.createSampler({
+			compare: "less"
+		});
 
 		this._bindGroup = this._device.createBindGroup({
 			layout: bindGroupLayout,
@@ -141,18 +142,18 @@ export default class GeometryRenderer {
 					binding: 1,
 					resource: { buffer: this._nodeUniformBuffer },
 				},
-				// {
-				// 	binding: 2,
-				// 	resource: { buffer: this._lightUniformBuffer },
-				// },
-				// {
-				// 	binding: 3,
-				// 	resource: this._shadowTexture.createView(),
-				// },
-				// {
-				// 	binding: 4,
-				// 	resource: shadowSampler,
-				// }
+				{
+					binding: 2,
+					resource: { buffer: this._lightUniformBuffer },
+				},
+				{
+					binding: 3,
+					resource: this._shadowTexture.createView(),
+				},
+				{
+					binding: 4,
+					resource: shadowSampler,
+				}
 			],
 		});
 
@@ -220,16 +221,20 @@ export default class GeometryRenderer {
 		return this._node;
 	}
 
-	get triangleBuffer() {
-		return this._triangleBuffer;
-	}
-
 	get vertexBufferLayout() {
 		return this._vertexBufferLayout;
 	}
 
-	get particleInstanceLayout() {
-		return this._particleInstanceLayout;
+	get interleavedBuffer() {
+		return this._interleavedBuffer;
+	}
+
+	get indexBuffer(){
+		return this._indexBuffer;
+	}
+
+	get indexCount() {
+		return this._geometry.indices.length;
 	}
 
 	get viewUniformBuffer() {
@@ -243,4 +248,5 @@ export default class GeometryRenderer {
 	get particleCount() {
 		return this._particleCount;
 	}
+	
 }
