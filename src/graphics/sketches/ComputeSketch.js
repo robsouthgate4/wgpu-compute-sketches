@@ -10,6 +10,7 @@ import RenderFullScreen from "./RenderFullScreen";
 import { vec3 } from "gl-matrix";
 import GeometryRenderer from "./GeometryRenderer";
 import { basicShader } from "./shaders/basicShader";
+import { basicShadowShader } from "./shaders/basicShadowShader";
 
 
 export default class extends Base {
@@ -38,21 +39,18 @@ export default class extends Base {
 		const dracoLoader = new DracoLoader(this._bolt);
 		const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
 
-
-        const frustumSize = 3;
+		const frustumSize = 7;
 
 		this._light = new CameraOrtho( {
 			left: - frustumSize,
 			right: frustumSize,
 			bottom: - frustumSize,
 			top: frustumSize,
-			near: 1,
+			near: 0.1,
 			far: 20,
-			position: vec3.fromValues( 0, 10, 10 ),
+			position: vec3.fromValues( 10, 10, 0.1 ),
 			target: vec3.fromValues( 0, 0, 0 ),
 		} );
-		
-		this._light.lookAt(vec3.fromValues(0, 0, 0));
 
 		this._controls   = new Controls(this._cameraMain);
 
@@ -143,21 +141,21 @@ export default class extends Base {
 		//this._shadowRenderer   = new ShadowRenderer(this._bolt, sharedData);
 		this._particleRenderer = new ParticleRenderer(this._bolt, sharedData);
 		this._renderFullScreen = new RenderFullScreen(this._bolt, this._shadowDepthTexture);
-		this._objectRenderer   = new GeometryRenderer(this._bolt, sharedData, sphereGeometry, basicShader);
-		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, basicShader);
+		this._sphereRenderer   = new GeometryRenderer(this._bolt, sharedData, sphereGeometry, basicShader);
+		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, basicShadowShader);
 
-		this._objectShadowRenderer = new ShadowRenderer(
+		this._sphereShadowRenderer = new ShadowRenderer(
 										this._bolt, 
 										sharedData, 
-										this._objectRenderer.vertexBufferLayout,
-										this._objectRenderer.interleavedBuffer,
-										this._objectRenderer.nodeUniformBuffer,
-										this._objectRenderer.indexBuffer,
-										this._objectRenderer.indexCount
+										this._sphereRenderer.vertexBufferLayout,
+										this._sphereRenderer.interleavedBuffer,
+										this._sphereRenderer.nodeUniformBuffer,
+										this._sphereRenderer.indexBuffer,
+										this._sphereRenderer.indexCount
 									);
 
 		this._floorRenderer.node.transform.positionY = -1.5;
-		this._floorRenderer.node.transform.scale = vec3.fromValues(10, 10, 1);
+		this._floorRenderer.node.transform.scale = vec3.fromValues(20, 20, 20);
 		this._floorRenderer.node.transform.rotationX = -90;
 		
 		this.initRenderTextures();
@@ -209,6 +207,11 @@ export default class extends Base {
 
 	async update(elapsed, delta) {
 
+		console.log(elapsed)
+
+		
+
+
 		if (this._currentCanvasWidth !== this._bolt.canvas.width || this._currentCanvasHeight !== this._bolt.canvas.height) {
 
 			this.resize();
@@ -231,6 +234,7 @@ export default class extends Base {
 		this._compute.update(elapsed, delta);
 		this._controls.update();
 		this._cameraMain.update();
+		
 
 		const commandEncoder = this._device.createCommandEncoder();
 
@@ -238,7 +242,7 @@ export default class extends Base {
 			colorAttachments: [{
 				view: this._renderTextureView,
 				resolveTarget: this._bolt.context.getCurrentTexture().createView(),
-				clearValue: { r: 1, g: 1, b: 1, a: 1 },
+				clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
 				loadOp: 'clear',
 				storeOp: 'store',
 			}],
@@ -250,15 +254,14 @@ export default class extends Base {
 			}
 		}
 
-		this._objectShadowRenderer.draw(commandEncoder);
+		this._sphereShadowRenderer.draw(commandEncoder);
 		
 		const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
 		
 		//this._shadowRenderer.update(commandEncoder);
-		//this._particleRenderer.update(renderPass);
+		//this._particleRenderer.update(renderPass);		
 		
-		
-		this._objectRenderer.draw(renderPass);
+		this._sphereRenderer.draw(renderPass);
 		this._floorRenderer.draw(renderPass);
 		this._renderFullScreen.render(renderPass);
 		

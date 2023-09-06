@@ -105,7 +105,8 @@ export default class GeometryRenderer {
 					binding: 0,
 					visibility: window.GPUShaderStage.VERTEX,
 					buffer: { type: "uniform" },
-				}, {
+				}, 
+				{
 					binding: 1,
 					visibility: window.GPUShaderStage.VERTEX,
 					buffer: { type: "uniform" },
@@ -119,16 +120,27 @@ export default class GeometryRenderer {
 					binding: 3,
 					visibility: window.GPUShaderStage.FRAGMENT,
 					texture: { sampleType: "depth" },
-				}, {
+				}, 
+				{
 					binding: 4,
 					visibility: window.GPUShaderStage.FRAGMENT,
 					sampler: { type: "comparison" },
+				},
+				{
+					binding: 5,
+					visibility: window.GPUShaderStage.FRAGMENT,
+					sampler: { type: "filtering" }
 				}
 			],
 		});
 
 		const shadowSampler = this._device.createSampler({
 			compare: "less"
+		});
+
+		const samplerTest = this._device.createSampler({
+			magFilter: "linear",
+			minFilter: "linear",
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -153,6 +165,10 @@ export default class GeometryRenderer {
 				{
 					binding: 4,
 					resource: shadowSampler,
+				},
+				{
+					binding: 5,
+					resource: samplerTest,
 				}
 			],
 		});
