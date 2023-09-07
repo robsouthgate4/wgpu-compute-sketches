@@ -11,13 +11,15 @@ const isTouchDevice = () => {
     : false;
 };
 
-const debug = getSearchParam("debug");
-const debugFPS = getSearchParam("fps");
+//NOT IN USE
+const debug          = getSearchParam("debug");
+const debugFPS       = getSearchParam("fps");
 const debugDrawCount = getSearchParam("drawcount");
-const debugGui = getSearchParam("gui");
-const debugControls = getSearchParam("controls");
-const debugCamera = getSearchParam("debugcamera");
+const debugGui       = getSearchParam("gui");
+const debugControls  = getSearchParam("controls");
+const debugCamera    = getSearchParam("debugcamera");
 
+//NOT IN USE
 const glSettings = {
   USE_POSTPROCESS: false,
   DPI: 2,

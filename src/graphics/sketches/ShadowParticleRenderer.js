@@ -1,5 +1,5 @@
 
-import { shadowDepthShader } from "./shaders/shadowDepthShader";
+import { shadowDepthShader } from "./shaders/particleDepthShader";
 
 export default class ShadowParticleRenderer {
 
@@ -29,37 +29,37 @@ export default class ShadowParticleRenderer {
         });
 
         this._vertexBufferLayout = {
-			arrayStride: 3 * Float32Array.BYTES_PER_ELEMENT,
-			stepMode: 'vertex',
-			attributes: [{
-				shaderLocation: 0,
-				offset: 0,
-				format: "float32x3"
-			}]
-		}
+            arrayStride: 3 * Float32Array.BYTES_PER_ELEMENT,
+            stepMode: 'vertex',
+            attributes: [{
+                shaderLocation: 0,
+                offset: 0,
+                format: "float32x3"
+            }]
+        };
 
         const particleInstanceByteSize =
-			4 * Float32Array.BYTES_PER_ELEMENT;
+            4 * Float32Array.BYTES_PER_ELEMENT;
 
-		this._particleInstanceLayout = {
-			// instanced particles buffer
-			arrayStride: particleInstanceByteSize,
-			stepMode: 'instance',
-			attributes: [
-				{
-					// instance offset
-					shaderLocation: 1,
-					offset: 0,
-					format: 'float32x4',
-				},
-				{
-					// instance lifetime
-					shaderLocation: 2,
-					offset: 3 * Float32Array.BYTES_PER_ELEMENT,
-					format: 'float32',
-				}
-			],
-		}
+        this._particleInstanceLayout = {
+            // instanced particles buffer
+            arrayStride: particleInstanceByteSize,
+            stepMode: 'instance',
+            attributes: [
+                {
+                    // instance offset
+                    shaderLocation: 1,
+                    offset: 0,
+                    format: 'float32x4',
+                },
+                {
+                    // instance lifetime
+                    shaderLocation: 2,
+                    offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+                    format: 'float32',
+                }
+            ],
+        }
 
         this._pipeline = this._device.createRenderPipeline({
             layout: "auto",
@@ -110,7 +110,7 @@ export default class ShadowParticleRenderer {
 
     resize() { }
 
-    update(commandEncoder) {
+    render(commandEncoder) {
 
         const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
 

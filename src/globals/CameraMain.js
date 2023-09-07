@@ -6,12 +6,12 @@ export default class CameraMain extends CameraPersp {
   constructor() {
     
     super({
-      aspect: window.innerWidth / window.innerHeight,
-      fov: 45,
-      near: 0.1,
-      far: 1000,
-      position: vec3.fromValues(0, 20, 6),
-      target: vec3.fromValues(0, 0, 0),
+      aspect  : window.innerWidth / window.innerHeight,
+      fov     : 45,
+      near    : 0.1,
+      far     : 1000,
+      position: vec3.fromValues(0, 0, 7),
+      target  : vec3.fromValues(0, 0, 0),
     });
     this._instance = null;
   }

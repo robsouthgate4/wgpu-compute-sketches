@@ -19,7 +19,7 @@ export default class Compute {
         this._computeBindGroup    = null;
         this._readCPUBuffer       = null;
         this._startPositionBuffer = null;
-        
+
 
         this.init();
 
@@ -112,13 +112,13 @@ export default class Compute {
             usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
         }),
 
-        this._device.queue.writeBuffer(this._particleBuffer, 0, particleStartPositions);
+            this._device.queue.writeBuffer(this._particleBuffer, 0, particleStartPositions);
 
         // create a buffer on the GPU to get a copy of the results
         this._readCPUBuffer = this._device.createBuffer({
-            label        : 'result buffer',
-            size         : particleStartPositions.byteLength,
-            usage        : window.GPUBufferUsage.MAP_READ | window.GPUBufferUsage.COPY_DST,
+            label: 'result buffer',
+            size: particleStartPositions.byteLength,
+            usage: window.GPUBufferUsage.MAP_READ | window.GPUBufferUsage.COPY_DST,
             mapAtCreation: false,
         });
 

@@ -1,5 +1,5 @@
 
-import { shadowDepthShader } from "./shaders/shadowDepthShader";
+import { shadowDepthShader } from "./shaders/particleDepthShader";
 
 export default class ShadowRenderer {
 

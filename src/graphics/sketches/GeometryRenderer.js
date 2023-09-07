@@ -11,7 +11,7 @@ export default class GeometryRenderer {
 		this._light                = sharedData.light;
 		this._lightUniformBuffer   = sharedData.lightUniformBuffer;
 		this._sceneUniformBuffer   = sharedData.sceneUniformBuffer;
-		this._shadowTexture 	   = sharedData.shadowTexture;		
+		this._shadowTexture        = sharedData.shadowTexture;
 		this._pipeline             = null;
 		this._bindGroup            = null;
 		this._renderPassDescriptor = null;
@@ -22,7 +22,7 @@ export default class GeometryRenderer {
 		this._vertexBufferLayout   = null;
 		this._indexBuffer          = null;
 
-		
+
 		this.init();
 
 	}
@@ -30,9 +30,9 @@ export default class GeometryRenderer {
 	async init() {
 
 		const positions = this._geometry.positions;
-		const normals = this._geometry.normals;
-		const uvs = this._geometry.uvs;
-		const indices = new Uint16Array(this._geometry.indices);
+		const normals   = this._geometry.normals;
+		const uvs       = this._geometry.uvs;
+		const indices   = new Uint16Array(this._geometry.indices);
 
 		this._node = new Node();
 
@@ -57,7 +57,7 @@ export default class GeometryRenderer {
 		const arrayStride = 8;
 
 		for (let i = 0; i < positions.length; i++) {
-			interleavedArray[i * arrayStride] = positions[i * 3];
+			interleavedArray[i * arrayStride]     = positions[i * 3];
 			interleavedArray[i * arrayStride + 1] = positions[i * 3 + 1];
 			interleavedArray[i * arrayStride + 2] = positions[i * 3 + 2];
 			interleavedArray[i * arrayStride + 3] = normals[i * 3];
@@ -81,11 +81,11 @@ export default class GeometryRenderer {
 				shaderLocation: 0,
 				offset: 0,
 				format: "float32x3"
-			}, 
+			},
 			{
 				shaderLocation: 1,
 				offset: 3 * Float32Array.BYTES_PER_ELEMENT,
-				format: "float32x3"	
+				format: "float32x3"
 			}, {
 				shaderLocation: 2,
 				offset: 6 * Float32Array.BYTES_PER_ELEMENT,
@@ -105,29 +105,24 @@ export default class GeometryRenderer {
 					binding: 0,
 					visibility: window.GPUShaderStage.VERTEX,
 					buffer: { type: "uniform" },
-				}, 
+				},
 				{
 					binding: 1,
 					visibility: window.GPUShaderStage.VERTEX,
 					buffer: { type: "uniform" },
-				}, 
+				},
 				{
 					binding: 2,
 					visibility: window.GPUShaderStage.VERTEX,
 					buffer: { type: "uniform" },
-				}, 
+				},
 				{
 					binding: 3,
 					visibility: window.GPUShaderStage.FRAGMENT,
 					texture: { sampleType: "depth" },
-				}, 
-				{
-					binding: 4,
-					visibility: window.GPUShaderStage.FRAGMENT,
-					sampler: { type: "comparison" },
 				},
 				{
-					binding: 5,
+					binding: 4,
 					visibility: window.GPUShaderStage.FRAGMENT,
 					sampler: { type: "filtering" }
 				}
@@ -135,10 +130,6 @@ export default class GeometryRenderer {
 		});
 
 		const shadowSampler = this._device.createSampler({
-			compare: "less"
-		});
-
-		const samplerTest = this._device.createSampler({
 			magFilter: "linear",
 			minFilter: "linear",
 		});
@@ -166,10 +157,6 @@ export default class GeometryRenderer {
 					binding: 4,
 					resource: shadowSampler,
 				},
-				{
-					binding: 5,
-					resource: samplerTest,
-				}
 			],
 		});
 
@@ -217,7 +204,7 @@ export default class GeometryRenderer {
 
 	resizeTextures() {
 
-		
+
 	}
 
 	draw(renderPass) {
@@ -245,7 +232,7 @@ export default class GeometryRenderer {
 		return this._interleavedBuffer;
 	}
 
-	get indexBuffer(){
+	get indexBuffer() {
 		return this._indexBuffer;
 	}
 
@@ -264,5 +251,5 @@ export default class GeometryRenderer {
 	get particleCount() {
 		return this._particleCount;
 	}
-	
+
 }

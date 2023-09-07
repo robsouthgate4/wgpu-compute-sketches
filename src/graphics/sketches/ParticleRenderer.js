@@ -104,13 +104,14 @@ export default class ParticleRenderer {
 				}, {
 					binding: 4,
 					visibility: window.GPUShaderStage.FRAGMENT,
-					sampler: { type: "comparison" },
+					sampler: { type: "filtering" },
 				}
 			],
 		});
 
 		const shadowSampler = this._device.createSampler({
-			compare: "less"
+			magFilter: "linear",
+			minFilter: "linear",
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -184,7 +185,7 @@ export default class ParticleRenderer {
 
 	resizeTextures() {
 
-		
+
 	}
 
 	update(renderPass) {
