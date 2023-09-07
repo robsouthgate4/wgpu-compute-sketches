@@ -31,7 +31,8 @@ export const particleShader = /* wgsl */`
         @builtin(position) position: vec4f,
         @location(0) color: vec4f,
         @location(1) shadowCoord: vec3f,
-        @location(2) lightSpacePos: vec4f
+        @location(2) lightSpacePos: vec4f,
+        @location(3) uv: vec2f
     };
 
    ${applyQuaternion} // include quaternion function
@@ -41,7 +42,7 @@ export const particleShader = /* wgsl */`
         var out: VertexOutput;
 
         
-        var pos = in.position.xyz * 0.012;
+        var pos = in.position.xyz * 0.013;
         
         // apply quaternion
         pos = applyQuaternion( camera.quaternion, pos );
@@ -56,14 +57,21 @@ export const particleShader = /* wgsl */`
         out.position      = mvp * vec4(pos.xyz, 1);
         out.lightSpacePos = posFromLight;
         out.color         = vec4( 0.0, 0.0, 0.0, 1.0 );
+        out.uv           = in.position.xy * 2.;
         return out;
     }
 
     @fragment fn fs( in: VertexOutput ) -> @location(0) vec4f {
-        var shadow    = shadowCalculation(in.lightSpacePos, shadowMap, shadowSampler, 2048., 1.0);
+        var shadow    = shadowCalculation(in.lightSpacePos, shadowMap, shadowSampler, 1024., 1.);
         var shadowCol = vec3(0.3);
         var meshCol   = vec3(1.0);
         var outCol    = mix(meshCol, shadowCol, shadow);
+
+        var mask = 1.0 - step( 0.55, length(in.uv + vec2( 0.0, 0.3 )) );
+
+        if( mask < 0.5 ) {
+            discard;
+        }
 
         return vec4( outCol, 1.0 );
     }

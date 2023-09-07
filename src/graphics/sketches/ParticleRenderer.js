@@ -110,8 +110,10 @@ export default class ParticleRenderer {
 		});
 
 		const shadowSampler = this._device.createSampler({
-			magFilter: "linear",
-			minFilter: "linear",
+			magFilter: "nearest",
+			minFilter: "nearest",
+			addressModeU: "repeat",
+			addressModeV: "repeat"
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -173,6 +175,7 @@ export default class ParticleRenderer {
 			primitive: {
 				topology: 'triangle-list',
 			},
+			cullMode: 'none',
 		})
 
 		this.resizeTextures();

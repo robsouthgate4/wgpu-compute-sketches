@@ -13,6 +13,8 @@ export const shadowCalculation = /* wgsl */`
 
         var offsetSize = texelSize / res;
 
+        var bias = 0.01;
+
         for(var x = -1; x <= 1; x++)
         {
             for(var y = -1; y <= 1; y++)
@@ -21,13 +23,19 @@ export const shadowCalculation = /* wgsl */`
                 var pcfDepth = textureSample(shadowMap, samp, projCoords.xy + offset);
                 var curr     = currentDepth;
 
-                if(curr >= pcfDepth) {
+                if(curr - bias > pcfDepth) {
                     shadow += 1.0;
                 }
             }    
         }
 
         shadow /= 9.0;
+
+        // var closestDepth = textureSample(shadowMap, samp, projCoords.xy);
+
+        // if(currentDepth - bias > closestDepth) {
+        //     shadow = 1.0;
+        // }
 
         if(projCoords.z < 0.0 || projCoords.z > 1.0 || projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0) {
             return 0.0;

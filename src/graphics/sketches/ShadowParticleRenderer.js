@@ -78,7 +78,8 @@ export default class ShadowParticleRenderer {
             },
             primitive: {
                 topology: "triangle-list",
-            }
+            },
+            cullMode: "front",
         });
 
         this._bindGroup = this._device.createBindGroup({
@@ -100,7 +101,7 @@ export default class ShadowParticleRenderer {
             colorAttachments: [],
             depthStencilAttachment: {
                 view: this._shadowTexture.createView(),
-                depthClearValue: 1.0,
+                depthClearValue: 1,
                 depthLoadOp: "clear",
                 depthStoreOp: "store",
             }

@@ -39,7 +39,7 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
         var center = (vert1 + vert2 + vert3) / 3.0;
 
         var currentLife = particles[i].life;
-
+        
         if( currentLife > 1.0 ) {
             // reset particle
             particles[i].life = startData[i].life;	

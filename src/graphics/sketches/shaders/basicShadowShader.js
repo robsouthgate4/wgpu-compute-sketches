@@ -58,7 +58,7 @@ export const basicShadowShader = /* wgsl */`
 
     @fragment fn fs( in: VertexOutput ) -> @location(0) vec4f {
 
-        var shadow    = shadowCalculation(in.lightSpacePos, shadowMap, samp, 2048., 1.5);
+        var shadow    = shadowCalculation(in.lightSpacePos, shadowMap, samp, 1024., 1.5);
         var shadowCol = vec3(0.6);
         var meshCol   = vec3(0.8);
         var outCol    = mix(meshCol, shadowCol, shadow);

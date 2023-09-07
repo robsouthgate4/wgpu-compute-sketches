@@ -2,7 +2,7 @@ import Base from "../Base";
 
 import CameraMain from "../../globals/CameraMain";
 import Controls from "../../globals/Controls";
-import { BoltWGPU, CameraOrtho, DracoLoader, Node, Plane, Sphere } from "bolt-wgpu";
+import { BoltWGPU, CameraOrtho, CameraPersp, DracoLoader, Node, Plane, Sphere } from "bolt-wgpu";
 import Compute from "./Compute";
 import ParticleRenderer from "./ParticleRenderer";
 import ShadowRenderer from "./ShadowRenderer";
@@ -28,7 +28,7 @@ export default class extends Base {
 		this._light               = null;
 		this._currentCanvasWidth  = 0;
 		this._currentCanvasHeight = 0;
-		this._shadowTextureSize   = 2048;
+		this._shadowTextureSize   = 1024;
 		this._renderTexture       = null;
 		this._renderTextureView   = null;
 	}
@@ -40,7 +40,7 @@ export default class extends Base {
 		// const dracoLoader = new DracoLoader(this._bolt);
 		// const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
 
-		const frustumSize = 3;
+		const frustumSize = 2;
 
 		this._light = new CameraOrtho({
 			left    : - frustumSize,
@@ -48,10 +48,17 @@ export default class extends Base {
 			bottom  : - frustumSize,
 			top     : frustumSize,
 			near    : 0.01,
-			far     : 20,
-			position: vec3.fromValues(10, 10, 10),
-			target  : vec3.fromValues(0, 0, 0),
+			far     : 60,
+			position: vec3.fromValues(0, 40, 0.01)
 		});
+
+		// this._light = new CameraPersp({
+		// 	aspect  : 1,
+		// 	fov     : 15,
+		// 	near    : 1,
+		// 	far     : 1000,
+		// 	position: vec3.fromValues(0, 20, 0.01),
+		// })
 
 
 		this._light.transform.lookAt(vec3.fromValues(0, 0, 0));
@@ -253,7 +260,7 @@ export default class extends Base {
 			colorAttachments: [{
 				view: this._renderTextureView,
 				resolveTarget: this._bolt.context.getCurrentTexture().createView(),
-				clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
+				clearValue: { r: 0, g: 0, b: 0, a: 1 },
 				loadOp: 'clear',
 				storeOp: 'store',
 			}],
