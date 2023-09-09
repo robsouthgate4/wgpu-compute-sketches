@@ -13,7 +13,7 @@ export const shadowCalculation = /* wgsl */`
 
         var offsetSize = texelSize / res;
 
-        var bias = 0.01;
+        var bias = 0.0001;
 
         for(var x = -1; x <= 1; x++)
         {

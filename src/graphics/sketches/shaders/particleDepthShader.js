@@ -29,13 +29,11 @@ export const shadowDepthShader = /* wgsl */`
         var pos = in.position.xyz * 0.013;
 
         // apply quaternion
-        pos = applyQuaternion( light.quaternion, pos );
+        pos = -applyQuaternion( light.quaternion, pos );
 
         pos += in.offset.xyz;
 
-        var modelView = light.view * model;
-
-        var mvp = light.projection * modelView;
+        var mvp = light.projection * light.view * model;
 
         out.position = mvp * vec4(pos.xyz, 1);
 

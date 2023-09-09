@@ -130,8 +130,8 @@ export default class GeometryRenderer {
 		});
 
 		const shadowSampler = this._device.createSampler({
-			magFilter: "linear",
-			minFilter: "linear",
+			magFilter: "nearest",
+			minFilter: "nearest",
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -192,6 +192,7 @@ export default class GeometryRenderer {
 			primitive: {
 				topology: 'triangle-list',
 			},
+			cullMode: "front",
 		})
 
 		this.resizeTextures();

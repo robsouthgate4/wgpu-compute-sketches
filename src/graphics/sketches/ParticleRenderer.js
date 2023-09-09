@@ -112,8 +112,8 @@ export default class ParticleRenderer {
 		const shadowSampler = this._device.createSampler({
 			magFilter: "nearest",
 			minFilter: "nearest",
-			addressModeU: "repeat",
-			addressModeV: "repeat"
+			addressModeU: "clamp-to-edge",
+			addressModeV: "clamp-to-edge",
 		});
 
 		this._bindGroup = this._device.createBindGroup({

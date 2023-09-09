@@ -28,7 +28,7 @@ export default class extends Base {
 		this._light               = null;
 		this._currentCanvasWidth  = 0;
 		this._currentCanvasHeight = 0;
-		this._shadowTextureSize   = 1024;
+		this._shadowTextureSize   = 2048;
 		this._renderTexture       = null;
 		this._renderTextureView   = null;
 	}
@@ -40,16 +40,16 @@ export default class extends Base {
 		// const dracoLoader = new DracoLoader(this._bolt);
 		// const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
 
-		const frustumSize = 7;
+		const frustumSize = 4;
 
 		this._light = new CameraOrtho( {
 			left: - frustumSize,
 			right: frustumSize,
 			bottom: - frustumSize,
 			top: frustumSize,
-			near: 0.1,
+			near: 0.01,
 			far: 20,
-			position: vec3.fromValues( - 10, 8, 2 ),
+			position: vec3.fromValues( -8, 12, 2 ),
 			target: vec3.fromValues( 0, 0, 0 ),
 		} );
 
@@ -145,8 +145,11 @@ export default class extends Base {
 		//this._shadowRenderer   = new ShadowRenderer(this._bolt, sharedData);
 		this._particleRenderer = new ParticleRenderer(this._bolt, sharedData);
 		this._renderFullScreen = new RenderFullScreen(this._bolt, this._shadowDepthTexture);
-		this._sphereRenderer   = new GeometryRenderer(this._bolt, sharedData, sphereGeometry, basicShader);
-		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, basicShader);
+
+		this._sphereRenderer   = new GeometryRenderer(this._bolt, sharedData, sphereGeometry, basicShadowShader);
+		this._sphereRenderer.node.transform.scale = vec3.fromValues(0.5, 0.5, 0.5);
+
+		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, basicShadowShader);
 
 		this._sphereShadowRenderer = new ShadowRenderer(
 			this._bolt,
@@ -163,7 +166,7 @@ export default class extends Base {
 			sharedData
 		)
 
-		this._floorRenderer.node.transform.positionY = -1.5;
+		this._floorRenderer.node.transform.positionY = -2.5;
 		this._floorRenderer.node.transform.scale = vec3.fromValues(20, 20, 20);
 		this._floorRenderer.node.transform.rotationX = -90;
 
@@ -270,14 +273,12 @@ export default class extends Base {
 		this._particleShadowRenderer.render(commandEncoder);
 
 		const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
-
-		//this._shadowRenderer.update(commandEncoder);
 		
 		this._particleRenderer.update(renderPass);		
 
 		//this._sphereRenderer.draw(renderPass);
-		//this._floorRenderer.draw(renderPass);
-		this._renderFullScreen.render(renderPass);
+		this._floorRenderer.draw(renderPass);
+		//this._renderFullScreen.render(renderPass);
 
 		renderPass.end();
 

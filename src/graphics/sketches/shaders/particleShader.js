@@ -41,8 +41,7 @@ export const particleShader = /* wgsl */`
     @vertex fn vs( in: VertexInput ) -> VertexOutput {
         var out: VertexOutput;
 
-        
-        var pos = in.position.xyz * 0.013;
+        var pos = in.position.xyz * 0.018;
         
         // apply quaternion
         pos = applyQuaternion( camera.quaternion, pos );
@@ -62,8 +61,10 @@ export const particleShader = /* wgsl */`
     }
 
     @fragment fn fs( in: VertexOutput ) -> @location(0) vec4f {
+
         var shadow    = shadowCalculation(in.lightSpacePos, shadowMap, shadowSampler, 1024., 1.);
-        var shadowCol = vec3(0.3);
+
+        var shadowCol = vec3(0.6);
         var meshCol   = vec3(1.0);
         var outCol    = mix(meshCol, shadowCol, shadow);
 
