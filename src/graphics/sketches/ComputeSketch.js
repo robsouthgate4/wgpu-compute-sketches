@@ -40,25 +40,18 @@ export default class extends Base {
 		// const dracoLoader = new DracoLoader(this._bolt);
 		// const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
 
-		const frustumSize = 2;
+		const frustumSize = 7;
 
-		this._light = new CameraOrtho({
-			left    : - frustumSize,
-			right   : frustumSize,
-			bottom  : - frustumSize,
-			top     : frustumSize,
-			near    : 0.01,
-			far     : 60,
-			position: vec3.fromValues(0, 40, 0.01)
-		});
-
-		// this._light = new CameraPersp({
-		// 	aspect  : 1,
-		// 	fov     : 15,
-		// 	near    : 1,
-		// 	far     : 1000,
-		// 	position: vec3.fromValues(0, 20, 0.01),
-		// })
+		this._light = new CameraOrtho( {
+			left: - frustumSize,
+			right: frustumSize,
+			bottom: - frustumSize,
+			top: frustumSize,
+			near: 0.1,
+			far: 20,
+			position: vec3.fromValues( - 10, 8, 2 ),
+			target: vec3.fromValues( 0, 0, 0 ),
+		} );
 
 
 		this._light.transform.lookAt(vec3.fromValues(0, 0, 0));
