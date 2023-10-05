@@ -100,7 +100,7 @@ export default class RenderFullScreen {
 			depthStencil: {
 				depthWriteEnabled: true,
 				depthCompare: 'less',
-				format: 'depth24plus',
+				format: 'depth24plus-stencil8',
 			},
 			multisample: {
 				count: 4,

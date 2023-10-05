@@ -1,3 +1,5 @@
+import { sceneSettings } from "../../../globals/constants";
+
 export const fullScreen = /* wgsl */`
 
     struct VertexOutput {
@@ -48,7 +50,7 @@ export const fullScreen = /* wgsl */`
             discard;
         }
 
-        var col = textureSample(tex, sampleTexture, st);
+        var col = 1.0 - textureSample(tex, sampleTexture, st);
 
         return vec4(vec3(col), 1.0);
 

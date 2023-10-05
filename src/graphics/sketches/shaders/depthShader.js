@@ -1,10 +1,10 @@
 import { sceneSettings } from "../../../globals/constants";
 
-export const particleDepthShader = /* wgsl */`
+export const depthShader = /* wgsl */`
 
     struct Light {
         projection: mat4x4f,
-        view: mat4x4f
+        view: mat4x4f,
     };
 
     @group(0) @binding(0) var<uniform> light : Light;
@@ -23,20 +23,18 @@ export const particleDepthShader = /* wgsl */`
     @vertex fn vs( in: VertexInput ) -> VertexOutput {
         var out: VertexOutput;
 
-        var pos = in.position.xyz * 0.1;
+        var pos = in.position.xyz;
 
-        //pos += in.offset.xyz;
+        //var mvPosition: vec4f = light.view * model * vec4(in.offset.xyz, 1);
 
-        var mvPosition = light.view * model * vec4(in.offset.xyz, 1);
+        //mvPosition += vec4(pos * ${sceneSettings.PARTICLE_SCALE}, 0.);
 
-        mvPosition.x += pos.x;
-        mvPosition.y += pos.y;
-        mvPosition.z += pos.z;
+        var mvPosition: vec4f = light.view * model * vec4(pos, 1);
 
         var mvp = light.projection * mvPosition;
 
         out.position = mvp;
-        out.uv       = in.position.xy * 2.;
+       //out.uv       = in.position.xy * 2.;
 
         return out;
     }
@@ -49,7 +47,7 @@ export const particleDepthShader = /* wgsl */`
             discard;
         }
 
-        return vec4( 1.0 );
+        return vec4( 0.0 );
     }
     
 `

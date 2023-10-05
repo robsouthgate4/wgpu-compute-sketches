@@ -1,49 +1,67 @@
 
+import { Cube, Sphere } from "bolt-wgpu";
 import { particleShader } from "./shaders/particleShader";
 
 export default class ParticleRenderer {
 
 	constructor(bolt, sharedData) {
 
-		this._bolt                   = bolt;
-		this._device                 = bolt.device;
-		this._compute                = sharedData.compute;
-		this._light                  = sharedData.light;
-		this._lightUniformBuffer     = sharedData.lightUniformBuffer;
-		this._triangleBuffer         = sharedData.triangleBuffer;
-		this._sceneUniformBuffer     = sharedData.sceneUniformBuffer;
-		this._nodeUniformBuffer      = sharedData.nodeUniformBuffer;
-		this._particleCount          = sharedData.particleCount;
-		this._shadowTexture          = sharedData.shadowTexture;
-		this._pipeline               = null;
-		this._bindGroup              = null;
-		this._renderPassDescriptor   = null;
+		this._bolt = bolt;
+		this._device = bolt.device;
+		this._compute = sharedData.compute;
+		this._light = sharedData.light;
+		this._lightUniformBuffer = sharedData.lightUniformBuffer;
+		this._verticesBuffer = sharedData.triangleBuffer;
+		this._sceneUniformBuffer = sharedData.sceneUniformBuffer;
+		this._nodeUniformBuffer = sharedData.nodeUniformBuffer;
+		this._particleCount = sharedData.particleCount;
+		this._shadowTexture = sharedData.shadowTexture;
+		this._indicesBuffer = null;
+		this._pipeline = null;
+		this._bindGroup = null;
+		this._renderPassDescriptor = null;
 		this._particleInstanceLayout = null;
-		this._renderTexture          = null;
-		this._renderTextureView      = null;
-		this._depthTexture           = null;
-		this._depthTextureView       = null;
-		this._vertexBufferLayout     = null;
+		this._renderTexture = null;
+		this._renderTextureView = null;
+		this._depthTexture = null;
+		this._depthTextureView = null;
+		this._vertexBufferLayout = null;
+		this._indexCount = 0;
 		this.init();
 
 	}
 
 	async init() {
 
+		//const geo = new Sphere();
+
+		//const vertices = new Float32Array(geo.positions);
+		//const indices = new Uint32Array(geo.indices);
+
+		//this._indexCount = indices.length;
+
 		// MESH GEOMETRY SETUP
-		const triangleArray = new Float32Array([
+		const vertices = new Float32Array([
 			-0.5, -0.5, 0.0,
 			0.5, -0.5, 0.0,
 			0.0, 0.5, 0.0
 		]);
 
-		this._triangleBuffer = this._device.createBuffer({
+		this._verticesBuffer = this._device.createBuffer({
 			label: "Triangle vertices buffer",
-			size: triangleArray.byteLength,
+			size: vertices.byteLength,
 			usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
 		})
 
-		this._device.queue.writeBuffer(this._triangleBuffer, 0, triangleArray);
+		this._device.queue.writeBuffer(this._verticesBuffer, 0, vertices);
+
+		// this._indicesBuffer = this._device.createBuffer({
+		// 	label: "Triangle indices buffer",
+		// 	size: indices.byteLength,
+		// 	usage: window.GPUBufferUsage.INDEX | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+		// });
+
+		// this._device.queue.writeBuffer(this._indicesBuffer, 0, indices);	
 
 		this._vertexBufferLayout = {
 			arrayStride: 3 * Float32Array.BYTES_PER_ELEMENT,
@@ -58,6 +76,7 @@ export default class ParticleRenderer {
 		const particleInstanceByteSize =
 			4 * Float32Array.BYTES_PER_ELEMENT;
 
+
 		this._particleInstanceLayout = {
 			// instanced particles buffer
 			arrayStride: particleInstanceByteSize,
@@ -68,12 +87,6 @@ export default class ParticleRenderer {
 					shaderLocation: 1,
 					offset: 0,
 					format: 'float32x4',
-				},
-				{
-					// instance lifetime
-					shaderLocation: 2,
-					offset: 3 * Float32Array.BYTES_PER_ELEMENT,
-					format: 'float32',
 				}
 			],
 		}
@@ -104,16 +117,13 @@ export default class ParticleRenderer {
 				}, {
 					binding: 4,
 					visibility: window.GPUShaderStage.FRAGMENT,
-					sampler: { type: "filtering" },
+					sampler: { type: "comparison" },
 				}
 			],
 		});
 
 		const shadowSampler = this._device.createSampler({
-			magFilter: "nearest",
-			minFilter: "nearest",
-			addressModeU: "clamp-to-edge",
-			addressModeV: "clamp-to-edge",
+			compare: "less",
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -167,15 +177,15 @@ export default class ParticleRenderer {
 			depthStencil: {
 				depthWriteEnabled: true,
 				depthCompare: 'less',
-				format: 'depth24plus',
+				format: 'depth24plus-stencil8'
 			},
 			multisample: {
 				count: 4,
 			},
 			primitive: {
 				topology: 'triangle-list',
+				cullMode: 'none',
 			},
-			cullMode: 'none',
 		})
 
 		this.resizeTextures();
@@ -195,15 +205,17 @@ export default class ParticleRenderer {
 
 		renderPass.setPipeline(this._pipeline);
 		renderPass.setBindGroup(0, this._bindGroup);
-		renderPass.setVertexBuffer(0, this._triangleBuffer);
-		renderPass.setVertexBuffer(1, this._compute.particleBuffers);
-		renderPass.draw(3, this._particleCount, 0, 0);
+		renderPass.setVertexBuffer(0, this._verticesBuffer);
+		//renderPass.setIndexBuffer(this._indicesBuffer, "uint32");
+		renderPass.setVertexBuffer(1, this._compute.particleBuffer);
+		//renderPass.drawIndexed(this._indexCount, this._particleCount);
+		renderPass.draw(3, this._particleCount);
 
 
 	}
 
 	get triangleBuffer() {
-		return this._triangleBuffer;
+		return this._verticesBuffer;
 	}
 
 	get vertexBufferLayout() {

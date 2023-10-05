@@ -1,33 +1,47 @@
 
-import { shadowDepthShader } from "./shaders/particleDepthShader";
+import { depthShader } from "./shaders/depthShader";
 
 export default class ShadowRenderer {
 
-    constructor(bolt, sharedData, vertexBufferLayout, interleavedBuffer, nodeUniformBuffer, indexBuffer, indicesCount) {
+    constructor(bolt, sharedData, objectRenderers) {
 
         this._bolt                 = bolt;
         this._light                = sharedData.light;
         this._lightUniformBuffer   = sharedData.lightUniformBuffer;
         this._shadowTexture        = sharedData.shadowTexture;
-        this._nodeUniformBuffer    = nodeUniformBuffer;
-        this._vertexBufferLayout   = vertexBufferLayout;
-        this._interleavedBuffer    = interleavedBuffer;
-        this._indicesCount         = indicesCount;
-        this._indexBuffer          = indexBuffer;
         this._device               = this._bolt.device;
         this._renderPassDescriptor = null;
         this._depthTexture         = null;
+        this._objectRenderers      = objectRenderers
         this.init();
-
-        console.log(this._indicesCount)
 
     }
 
     init() {
 
+
+        const arrayStride = 8; // 3 for position, 3 for normal, 2 for uv
+        this._vertexBufferLayout = {
+			arrayStride: arrayStride * Float32Array.BYTES_PER_ELEMENT,
+			attributes: [{
+				shaderLocation: 0,
+				offset: 0,
+				format: "float32x3"
+			},
+			{
+				shaderLocation: 1,
+				offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+				format: "float32x3"
+			}, {
+				shaderLocation: 2,
+				offset: 6 * Float32Array.BYTES_PER_ELEMENT,
+				format: "float32x2"
+			}]
+		};
+
         const shadowDepthShaderModule = this._device.createShaderModule({
             label: "shadow depth shader module",
-            code: shadowDepthShader
+            code: depthShader
         });
 
         this._pipeline = this._device.createRenderPipeline({
@@ -46,21 +60,26 @@ export default class ShadowRenderer {
             },
             primitive: {
                 topology: "triangle-list",
+                cullMode: "front",
             }
         });
+    
 
-        this._bindGroup = this._device.createBindGroup({
-            layout: this._pipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: { buffer: this._lightUniformBuffer },
-                },
-                {
-                    binding: 1,
-                    resource: { buffer: this._nodeUniformBuffer },
-                },
-            ],
+        this._bindGroups = [];
+        this._objectRenderers.forEach(objectRenderer => {
+            this._bindGroups.push(this._device.createBindGroup({
+                layout: this._pipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: this._lightUniformBuffer },
+                    },
+                    {
+                        binding: 1,
+                        resource: { buffer: objectRenderer.nodeUniformBuffer },
+                    },
+                ],
+            }));
         });
 
 
@@ -83,10 +102,15 @@ export default class ShadowRenderer {
         const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
 
         renderPass.setPipeline(this._pipeline);
-        renderPass.setBindGroup(0, this._bindGroup);
-        renderPass.setVertexBuffer(0, this._interleavedBuffer);
-		renderPass.setIndexBuffer(this._indexBuffer, 'uint16');
-        renderPass.drawIndexed(this._indicesCount);
+
+        this._objectRenderers.forEach((objectRenderer, index) => {
+
+            renderPass.setBindGroup(0, this._bindGroups[index]);
+            renderPass.setVertexBuffer(0, objectRenderer.interleavedBuffer);
+            renderPass.setIndexBuffer(objectRenderer.indexBuffer, 'uint16');
+            renderPass.drawIndexed(objectRenderer.indexCount);
+            
+        });
 
         renderPass.end();
     }

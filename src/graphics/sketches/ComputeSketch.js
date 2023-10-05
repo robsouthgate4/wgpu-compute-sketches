@@ -2,16 +2,18 @@ import Base from "../Base";
 
 import CameraMain from "../../globals/CameraMain";
 import Controls from "../../globals/Controls";
-import { BoltWGPU, CameraOrtho, CameraPersp, DracoLoader, Node, Plane, Sphere } from "bolt-wgpu";
+import { BoltWGPU, CameraOrtho, CameraPersp, Cube, DracoLoader, Node, Plane, Sphere } from "bolt-wgpu";
 import Compute from "./Compute";
 import ParticleRenderer from "./ParticleRenderer";
 import ShadowRenderer from "./ShadowRenderer";
 import RenderFullScreen from "./RenderFullScreen";
-import { vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import GeometryRenderer from "./GeometryRenderer";
 import { basicShader } from "./shaders/basicShader";
 import { basicShadowShader } from "./shaders/basicShadowShader";
 import ShadowParticleRenderer from "./ShadowParticleRenderer";
+import { floorShader } from "./shaders/floorShader";
+import { sceneSettings } from "../../globals/constants";
 
 
 export default class extends Base {
@@ -28,41 +30,47 @@ export default class extends Base {
 		this._light               = null;
 		this._currentCanvasWidth  = 0;
 		this._currentCanvasHeight = 0;
-		this._shadowTextureSize   = 2048;
+		this._shadowTextureSize   = sceneSettings.SHADOW_MAP_SIZE;
 		this._renderTexture       = null;
 		this._renderTextureView   = null;
+		this._lightProjection     = null;
 	}
 
 	async init() {
 
 		this._cameraMain = CameraMain.getInstance();
 
-		// const dracoLoader = new DracoLoader(this._bolt);
-		// const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
+		const dracoLoader = new DracoLoader(this._bolt);
+		const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
 
-		const frustumSize = 4;
+		this._light = new CameraOrtho({
+			left: -6,
+			right: 6,
+			top: 6,
+			bottom: -6,
+			near: 0.1,
+			far: 100,
+			position: vec3.fromValues(0, 20, -1),
+			lookAt: vec3.fromValues(0, 0, 0),
+			webgpu: true,
+		})
 
-		this._light = new CameraOrtho( {
-			left: - frustumSize,
-			right: frustumSize,
-			bottom: - frustumSize,
-			top: frustumSize,
-			near: 0.01,
-			far: 20,
-			position: vec3.fromValues( -8, 12, 2 ),
-			target: vec3.fromValues( 0, 0, 0 ),
-		} );
-
-
-		this._light.transform.lookAt(vec3.fromValues(0, 0, 0));
-		this._light.update();
-
+		this._light.lookAt(vec3.fromValues(0, 0, 0));
+	
 		this._controls = new Controls(this._cameraMain);
 
-		const sphereGeometry                 = new Sphere({ radius: 1.5, widthSegments: 512, heightSegments: 512 });
-		const { positions: spherePositions } = sphereGeometry;
-		const startData                      = new Float32Array(spherePositions);
-		const particleCount                  = spherePositions.length / 3;
+		const objectGeometry                 = new Cube();
+		
+		const particleCount = 500000;
+		const startData                      = new Float32Array(particleCount * 3);
+		for (let i = 0; i < particleCount; i++) {
+			const x = (Math.random() * 2 - 1) * 3.5;
+			const y = 0.1 + Math.random() * 5;
+			const z = (Math.random() * 2 - 1) * 3.5;
+			startData[i * 3] = x;
+			startData[i * 3 + 1] = y;
+			startData[i * 3 + 2] = z;
+		}
 
 		const planeGeometry = new Plane({ width: 1, height: 1, widthSegments: 10, heightSegments: 10 });
 
@@ -72,8 +80,8 @@ export default class extends Base {
 		});
 
 		this._particleNode = new Node();
-		this._particleNode.transform.positionY = 0;
-		this._particleNode.transform.scale = vec3.fromValues(1.0, 1.0, 1.0);
+		this._particleNode.transform.positionY = 2;
+		this._particleNode.updateModelMatrix();
 
 		const sceneBufferSize =  // view matrix + projection matrix + camera quaternion
 			16 * Float32Array.BYTES_PER_ELEMENT +
@@ -107,28 +115,20 @@ export default class extends Base {
 
 		this._device.queue.writeBuffer(this._triangleBuffer, 0, triangleArray);
 
-		const lightUniformBufferSize =  // view matrix + projection matrix + quaternion
+		const lightUniformBufferSize =  // view matrix + projection matrix
 			16 * Float32Array.BYTES_PER_ELEMENT +
-			16 * Float32Array.BYTES_PER_ELEMENT +
-			4 * Float32Array.BYTES_PER_ELEMENT;
+			16 * Float32Array.BYTES_PER_ELEMENT;
 
 		this._lightUniformBuffer = this._device.createBuffer({
 			size: lightUniformBufferSize,
 			usage: window.GPUBufferUsage.UNIFORM | window.GPUBufferUsage.COPY_DST,
-		});
-
-		this._light.update();
-		this._light.updateModelMatrix();
-
-		
+		});		
 
 		this._shadowDepthTexture = this._device.createTexture({
 			size: [this._shadowTextureSize, this._shadowTextureSize, 1],
 			usage: window.GPUTextureUsage.RENDER_ATTACHMENT | window.GPUTextureUsage.TEXTURE_BINDING,
 			format: "depth32float",
 		});
-
-		this._light.shadowTexture = this._shadowDepthTexture;
 
 		const sharedData = {
 			node              : this._particleNode,
@@ -142,32 +142,38 @@ export default class extends Base {
 			shadowTexture     : this._shadowDepthTexture,
 		}
 
-		//this._shadowRenderer   = new ShadowRenderer(this._bolt, sharedData);
 		this._particleRenderer = new ParticleRenderer(this._bolt, sharedData);
+
 		this._renderFullScreen = new RenderFullScreen(this._bolt, this._shadowDepthTexture);
 
-		this._sphereRenderer   = new GeometryRenderer(this._bolt, sharedData, sphereGeometry, basicShadowShader);
-		this._sphereRenderer.node.transform.scale = vec3.fromValues(0.5, 0.5, 0.5);
+		this._cubeRenderer   = new GeometryRenderer(this._bolt, sharedData, objectGeometry, basicShadowShader);
+		this._cubeRenderer.node.transform.positionY = 2.5;
+		this._cubeRenderer.node.transform.positionX = 0;	
+		this._cubeRenderer.node.transform.scale = vec3.fromValues(1, 1, 1);
 
-		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, basicShadowShader);
+		this._sphereRenderer   = new GeometryRenderer(this._bolt, sharedData, new Sphere(), basicShader);
+		this._sphereRenderer.node.transform.positionY = 2;
+		this._sphereRenderer.node.transform.positionX = 0;	
+		this._sphereRenderer.node.transform.scale = vec3.fromValues(0.2, 0.2, 0.2);
 
-		this._sphereShadowRenderer = new ShadowRenderer(
+		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, floorShader);
+
+		this._objectShadowRenderer = new ShadowRenderer(
 			this._bolt,
 			sharedData,
-			this._sphereRenderer.vertexBufferLayout,
-			this._sphereRenderer.interleavedBuffer,
-			this._sphereRenderer.nodeUniformBuffer,
-			this._sphereRenderer.indexBuffer,
-			this._sphereRenderer.indexCount
-		);
+			[
+				this._cubeRenderer,
+				this._sphereRenderer
+			]	
+		)
 
 		this._particleShadowRenderer = new ShadowParticleRenderer(
 			this._bolt,
 			sharedData
 		)
 
-		this._floorRenderer.node.transform.positionY = -2.5;
-		this._floorRenderer.node.transform.scale = vec3.fromValues(20, 20, 20);
+		this._floorRenderer.node.transform.positionY = 0;
+		this._floorRenderer.node.transform.scale = vec3.fromValues(200, 200, 200);
 		this._floorRenderer.node.transform.rotationX = -90;
 
 		this.initRenderTextures();
@@ -193,7 +199,7 @@ export default class extends Base {
 
 		this._depthTexture = this._device.createTexture({
 			size: [this._bolt.canvas.width, this._bolt.canvas.height],
-			format: 'depth24plus',
+			format: 'depth24plus-stencil8',
 			sampleCount: 4,
 			usage: window.GPUTextureUsage.RENDER_ATTACHMENT,
 		});
@@ -209,7 +215,7 @@ export default class extends Base {
 		// this._particleRenderer.resize();
 		// this._shadowRenderer.resize();
 		this._bolt.resizeCanvasToDisplay();
-		this._cameraMain.updateProjection(window.innerWidth / window.innerHeight);
+		this._cameraMain.updateProjection(window.innerWidth / window.innerHeight, true);
 
 	}
 
@@ -230,11 +236,9 @@ export default class extends Base {
 
 		}
 
-
 		this._device.queue.writeBuffer(this._lightUniformBuffer, 0, new Float32Array([
 			...this._light.projection,
-			...this._light.view,
-			...this._light.transform.quaternion
+			...this._light.view
 		]));
 
 		this._device.queue.writeBuffer(this._sceneUniformBuffer, 0, new Float32Array([
@@ -256,7 +260,7 @@ export default class extends Base {
 			colorAttachments: [{
 				view: this._renderTextureView,
 				resolveTarget: this._bolt.context.getCurrentTexture().createView(),
-				clearValue: { r: 0, g: 0, b: 0, a: 1 },
+				clearValue: { r: 0.82, g: 0.82, b: 0.82, a: 1 },
 				loadOp: 'clear',
 				storeOp: 'store',
 			}],
@@ -265,22 +269,31 @@ export default class extends Base {
 				depthClearValue: 1,
 				depthLoadOp: 'clear',
 				depthStoreOp: 'store',
+				stencilClearValue: 0,
+				stencilLoadOp: 'clear',
+				stencilStoreOp: 'store',
 			}
 		}
 
-		//this._sphereShadowRenderer.draw(commandEncoder);
 
 		this._particleShadowRenderer.render(commandEncoder);
-
+		//this._objectShadowRenderer.draw(commandEncoder);
+		
 		const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
 		
-		this._particleRenderer.update(renderPass);		
+		this._particleRenderer.update(renderPass);
 
 		//this._sphereRenderer.draw(renderPass);
+		
+		this._cubeRenderer.node.transform.positionY = 1;
+		this._cubeRenderer.node.transform.rotateY(0.01);
+		
+		//this._cubeRenderer.draw(renderPass);
 		this._floorRenderer.draw(renderPass);
 		//this._renderFullScreen.render(renderPass);
-
+		
 		renderPass.end();
+		
 
 		this._device.queue.submit([commandEncoder.finish()]);
 

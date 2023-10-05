@@ -20,7 +20,7 @@ const debugControls  = getSearchParam("controls");
 const debugCamera    = getSearchParam("debugcamera");
 
 //NOT IN USE
-const glSettings = {
+const sceneSettings = {
   USE_POSTPROCESS: false,
   DPI: 2,
   DEBUG_FPS: false || (debug && debugFPS),
@@ -28,8 +28,12 @@ const glSettings = {
   USE_ORBIT_CONTROLS: false || (debug && debugControls),
   USE_DEBUG_CAMERA: false || (debug && debugCamera),
   USE_GUI: false || (debug && debugGui),
+  SHADOW_MAP_SIZE: 2048,
+  PARTICLE_SCALE: 0.2,
+  LIGHT_NEAR: 0.1,
+  LIGHT_FAR: 100,
 };
 
 const xrSettings = {};
 
-export { isTouchDevice, glSettings, xrSettings };
+export { isTouchDevice, sceneSettings, xrSettings };

@@ -9,6 +9,8 @@ export default class Controls extends Orbit {
       rotateSpeed: 3,
       ease: 0.05,
       panSpeed: 2,
+      minElevation: -Math.PI / 2,
+      maxElevation: Math.PI / 2,
     });
   }
 }

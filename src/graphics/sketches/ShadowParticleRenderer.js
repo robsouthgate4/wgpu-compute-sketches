@@ -1,5 +1,7 @@
 
-import { shadowDepthShader } from "./shaders/particleDepthShader";
+import { Cube, Sphere } from "bolt-wgpu";
+import { depthShader } from "./shaders/depthShader";
+import { particleDepthShader } from "./shaders/particleDepthShader";
 
 export default class ShadowParticleRenderer {
 
@@ -23,9 +25,40 @@ export default class ShadowParticleRenderer {
 
     init() {
 
+        // const cube = new Sphere();
+		// console.log(cube);
+
+		// const vertices = new Float32Array(cube.positions);
+		// const indices = new Uint32Array(cube.indices);
+
+		// this._indexCount = indices.length;
+
+		// MESH GEOMETRY SETUP
+		const vertices = new Float32Array([
+			-0.5, -0.5, 0.0,
+			0.5, -0.5, 0.0,
+			0.0, 0.5, 0.0
+		]);
+
+		this._verticesBuffer = this._device.createBuffer({
+			label: "Triangle vertices buffer",
+			size: vertices.byteLength,
+			usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+		})
+
+		this._device.queue.writeBuffer(this._verticesBuffer, 0, vertices);
+
+		// this._indicesBuffer = this._device.createBuffer({
+		// 	label: "Triangle indices buffer",
+		// 	size: indices.byteLength,
+		// 	usage: window.GPUBufferUsage.INDEX | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+		// });
+
+		// this._device.queue.writeBuffer(this._indicesBuffer, 0, indices);
+
         const shadowDepthShaderModule = this._device.createShaderModule({
             label: "shadow depth shader module",
-            code: shadowDepthShader
+            code: particleDepthShader
         });
 
         this._vertexBufferLayout = {
@@ -51,17 +84,12 @@ export default class ShadowParticleRenderer {
                     shaderLocation: 1,
                     offset: 0,
                     format: 'float32x4',
-                },
-                {
-                    // instance lifetime
-                    shaderLocation: 2,
-                    offset: 3 * Float32Array.BYTES_PER_ELEMENT,
-                    format: 'float32',
                 }
-            ],
+            ]
         }
 
         this._pipeline = this._device.createRenderPipeline({
+            label: "shadow depth pipeline",
             layout: "auto",
             vertex: {
                 module: shadowDepthShaderModule,
@@ -71,6 +99,11 @@ export default class ShadowParticleRenderer {
                     this._particleInstanceLayout
                 ]
             },
+            fragment: {
+                module: shadowDepthShaderModule,
+                entryPoint: "fs",
+				targets: []
+            },
             depthStencil: {
                 depthWriteEnabled: true,
                 depthCompare: "less",
@@ -78,8 +111,8 @@ export default class ShadowParticleRenderer {
             },
             primitive: {
                 topology: "triangle-list",
+                cullMode: "none",
             },
-            cullMode: "front",
         });
 
         this._bindGroup = this._device.createBindGroup({
@@ -116,10 +149,12 @@ export default class ShadowParticleRenderer {
         const renderPass = commandEncoder.beginRenderPass(this._renderPassDescriptor);
 
         renderPass.setPipeline(this._pipeline);
-        renderPass.setBindGroup(0, this._bindGroup);
-        renderPass.setVertexBuffer(0, this._triangleBuffer);
-        renderPass.setVertexBuffer(1, this._compute.particleBuffers);
-        renderPass.draw(3, this._particleCount, 0, 0);
+		renderPass.setBindGroup(0, this._bindGroup);
+		renderPass.setVertexBuffer(0, this._verticesBuffer);
+		//renderPass.setIndexBuffer(this._indicesBuffer, "uint32");
+		renderPass.setVertexBuffer(1, this._compute.particleBuffer);
+		//renderPass.drawIndexed(this._indexCount, this._particleCount);
+        renderPass.draw(3, this._particleCount);
 
         renderPass.end();
     }

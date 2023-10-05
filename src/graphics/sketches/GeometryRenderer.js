@@ -90,8 +90,7 @@ export default class GeometryRenderer {
 				shaderLocation: 2,
 				offset: 6 * Float32Array.BYTES_PER_ELEMENT,
 				format: "float32x2"
-			}
-			]
+			}]
 		}
 
 		const shaderModule = this._device.createShaderModule({
@@ -124,14 +123,13 @@ export default class GeometryRenderer {
 				{
 					binding: 4,
 					visibility: window.GPUShaderStage.FRAGMENT,
-					sampler: { type: "filtering" }
+					sampler: { type: "comparison" }
 				}
 			],
 		});
 
 		const shadowSampler = this._device.createSampler({
-			magFilter: "nearest",
-			minFilter: "nearest",
+			compare: "less",
 		});
 
 		this._bindGroup = this._device.createBindGroup({
@@ -184,7 +182,7 @@ export default class GeometryRenderer {
 			depthStencil: {
 				depthWriteEnabled: true,
 				depthCompare: 'less',
-				format: 'depth24plus',
+				format: 'depth24plus-stencil8',
 			},
 			multisample: {
 				count: 4,
@@ -192,7 +190,6 @@ export default class GeometryRenderer {
 			primitive: {
 				topology: 'triangle-list',
 			},
-			cullMode: "front",
 		})
 
 		this.resizeTextures();

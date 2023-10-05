@@ -112,7 +112,7 @@ export default class Compute {
             usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
         }),
 
-            this._device.queue.writeBuffer(this._particleBuffer, 0, particleStartPositions);
+        this._device.queue.writeBuffer(this._particleBuffer, 0, particleStartPositions);
 
         // create a buffer on the GPU to get a copy of the results
         this._readCPUBuffer = this._device.createBuffer({
@@ -122,6 +122,7 @@ export default class Compute {
             mapAtCreation: false,
         });
 
+        
         // Setup a bindGroup to tell the shader which
         // buffer to use for the computation
         this._computeBindGroup = this._device.createBindGroup({
@@ -168,7 +169,7 @@ export default class Compute {
 
     }
 
-    get particleBuffers() {
+    get particleBuffer() {
         return this._particleBuffer;
     }
 
