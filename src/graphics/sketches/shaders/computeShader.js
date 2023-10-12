@@ -31,16 +31,10 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
 
         var startPos = startData[i].pos;
 
-        var vert1 = startData[i].pos;
-        var vert2 = startData[i + 1].pos;
-        var vert3 = startData[i + 2].pos;
-
-        // get center of triangle
-        var center = (vert1 + vert2 + vert3) / 3.0;
-
         var currentLife = particles[i].life;
 
-        //particles[i].pos = startPos;
+        // particles[i].pos = startPos;
+        // particles[i].life = startData[i].life;
         
         if( currentLife > 1.0 ) {
             // reset particle
@@ -48,10 +42,10 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
             particles[i].pos = startPos; //+ (curlNoise(startPos * 1. + (sin( uniforms.time * 10 ) * 10)) * 0.1);
             // move particle
         }else {
-            var curl = curlNoise(particles[i].pos * 0.2) * 0.0175;
+            var curl = curlNoise(particles[i].pos * 0.2) * 0.0275;
             particles[i].pos += curl;
-            particles[i].pos.y += curl.x * 0.5;
-            particles[i].life += 0.01;
+            particles[i].pos.y += curl.y * 0.5;
+            particles[i].life += 0.008;
         }
 
     }

@@ -28,7 +28,7 @@ const sceneSettings = {
   USE_ORBIT_CONTROLS: false || (debug && debugControls),
   USE_DEBUG_CAMERA: false || (debug && debugCamera),
   USE_GUI: false || (debug && debugGui),
-  SHADOW_MAP_SIZE: 2048,
+  SHADOW_MAP_SIZE: 1024,
   PARTICLE_SCALE: 0.2,
   LIGHT_NEAR: 0.1,
   LIGHT_FAR: 100,

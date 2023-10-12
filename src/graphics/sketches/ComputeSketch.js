@@ -2,12 +2,12 @@ import Base from "../Base";
 
 import CameraMain from "../../globals/CameraMain";
 import Controls from "../../globals/Controls";
-import { BoltWGPU, CameraOrtho, CameraPersp, Cube, DracoLoader, Node, Plane, Sphere } from "bolt-wgpu";
+import { BoltWGPU, CameraOrtho,  Cube,  Node, Plane, Sphere } from "bolt-wgpu";
 import Compute from "./Compute";
 import ParticleRenderer from "./ParticleRenderer";
 import ShadowRenderer from "./ShadowRenderer";
 import RenderFullScreen from "./RenderFullScreen";
-import { mat4, vec3 } from "gl-matrix";
+import {vec3 } from "gl-matrix";
 import GeometryRenderer from "./GeometryRenderer";
 import { basicShader } from "./shaders/basicShader";
 import { basicShadowShader } from "./shaders/basicShadowShader";
@@ -40,8 +40,8 @@ export default class extends Base {
 
 		this._cameraMain = CameraMain.getInstance();
 
-		const dracoLoader = new DracoLoader(this._bolt);
-		const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
+		// const dracoLoader = new DracoLoader(this._bolt);
+		// const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
 
 		this._light = new CameraOrtho({
 			left: -6,
@@ -63,14 +63,20 @@ export default class extends Base {
 		
 		const particleCount = 500000;
 		const startData                      = new Float32Array(particleCount * 3);
+
 		for (let i = 0; i < particleCount; i++) {
-			const x = (Math.random() * 2 - 1) * 3.5;
-			const y = 0.1 + Math.random() * 5;
-			const z = (Math.random() * 2 - 1) * 3.5;
+			// scatter in a sphere volume
+			const r = Math.random();
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.random() * Math.PI * 2;
+			const x = Math.sin(theta) * Math.cos(phi) * r * 3.5;
+			const y = Math.cos(theta) * r * 3.5;
+			const z = Math.sin(theta) * Math.sin(phi) * r * 3.5;
 			startData[i * 3] = x;
 			startData[i * 3 + 1] = y;
 			startData[i * 3 + 2] = z;
 		}
+
 
 		const planeGeometry = new Plane({ width: 1, height: 1, widthSegments: 10, heightSegments: 10 });
 
@@ -80,7 +86,7 @@ export default class extends Base {
 		});
 
 		this._particleNode = new Node();
-		this._particleNode.transform.positionY = 2;
+		this._particleNode.transform.positionY = 6.5;
 		this._particleNode.updateModelMatrix();
 
 		const sceneBufferSize =  // view matrix + projection matrix + camera quaternion
@@ -285,8 +291,8 @@ export default class extends Base {
 
 		//this._sphereRenderer.draw(renderPass);
 		
-		this._cubeRenderer.node.transform.positionY = 1;
-		this._cubeRenderer.node.transform.rotateY(0.01);
+		//this._cubeRenderer.node.transform.positionY = 1;
+		//this._cubeRenderer.node.transform.rotateY(0.01);
 		
 		//this._cubeRenderer.draw(renderPass);
 		this._floorRenderer.draw(renderPass);

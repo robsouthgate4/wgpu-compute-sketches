@@ -11,7 +11,7 @@ export default class CameraMain extends CameraPersp {
       near    : 0.01,
       far     : 100,
       position: vec3.fromValues(10, 8, 20),
-      target  : vec3.fromValues(0, 2, 0),
+      target  : vec3.fromValues(0, 6, 0),
       webgpu  : true
     });
     this._instance = null;

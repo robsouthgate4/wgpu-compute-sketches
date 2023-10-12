@@ -55,14 +55,6 @@ export default class ParticleRenderer {
 
 		this._device.queue.writeBuffer(this._verticesBuffer, 0, vertices);
 
-		// this._indicesBuffer = this._device.createBuffer({
-		// 	label: "Triangle indices buffer",
-		// 	size: indices.byteLength,
-		// 	usage: window.GPUBufferUsage.INDEX | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
-		// });
-
-		// this._device.queue.writeBuffer(this._indicesBuffer, 0, indices);	
-
 		this._vertexBufferLayout = {
 			arrayStride: 3 * Float32Array.BYTES_PER_ELEMENT,
 			stepMode: 'vertex',
@@ -74,7 +66,8 @@ export default class ParticleRenderer {
 		}
 
 		const particleInstanceByteSize =
-			4 * Float32Array.BYTES_PER_ELEMENT;
+			3 * Float32Array.BYTES_PER_ELEMENT + // offset
+			1 * Float32Array.BYTES_PER_ELEMENT; // lifetime
 
 
 		this._particleInstanceLayout = {
@@ -86,7 +79,13 @@ export default class ParticleRenderer {
 					// instance offset
 					shaderLocation: 1,
 					offset: 0,
-					format: 'float32x4',
+					format: 'float32x3',
+				},
+				{
+					// instance lifetime
+					shaderLocation: 2,
+					offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+					format: 'float32'
 				}
 			],
 		}
@@ -206,9 +205,7 @@ export default class ParticleRenderer {
 		renderPass.setPipeline(this._pipeline);
 		renderPass.setBindGroup(0, this._bindGroup);
 		renderPass.setVertexBuffer(0, this._verticesBuffer);
-		//renderPass.setIndexBuffer(this._indicesBuffer, "uint32");
 		renderPass.setVertexBuffer(1, this._compute.particleBuffer);
-		//renderPass.drawIndexed(this._indexCount, this._particleCount);
 		renderPass.draw(3, this._particleCount);
 
 

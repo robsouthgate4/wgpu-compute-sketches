@@ -23,7 +23,8 @@ export const particleShader = /* wgsl */`
 
     struct VertexInput {
         @location(0) position: vec3f,
-        @location(1) offset: vec3f
+        @location(1) offset: vec3f,
+        @location(2) life: f32,
     };
 
     struct VertexOutput {
@@ -32,6 +33,7 @@ export const particleShader = /* wgsl */`
         @location(1) lightSpacePos: vec4f,
         @location(2) uv: vec2f,
         @location(3) localPos: vec3f,
+        @location(4) life: f32,
     };
 
     ${shadowCalculation} // include cuntions
@@ -63,6 +65,7 @@ export const particleShader = /* wgsl */`
         out.lightSpacePos = posFromLight;
         out.color         = vec4( 0.0, 0.0, 0.0, 1.0 );
         out.uv            = in.position.xy * 2.;
+        out.life         = in.life;
         return out;
     }
 

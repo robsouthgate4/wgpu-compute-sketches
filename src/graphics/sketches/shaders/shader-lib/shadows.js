@@ -1,4 +1,4 @@
-import { sceneSettings } from "../../../../globals/constants";
+
 import { linearizeDepth } from "./common";
 
 export const shadowCalculation = /* wgsl */`
@@ -31,6 +31,10 @@ export const shadowCalculation = /* wgsl */`
         
         
         shadow /= 9.0;
+
+        if(shadowPos.x < 0.0 || shadowPos.x > 1.0 || shadowPos.y < 0.0 || shadowPos.y > 1.0) {
+            return 1.0;
+        }
         
         return shadow;
     }

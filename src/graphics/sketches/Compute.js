@@ -39,32 +39,32 @@ export default class Compute {
             usage: window.GPUBufferUsage.UNIFORM | window.GPUBufferUsage.COPY_DST,
         });
 
-        const startPositionData = new Float32Array(this._particleCount * 4);
+        const resetPositionData = new Float32Array(this._particleCount * 4);
         const particleStartPositions = new Float32Array(this._particleCount * 4);
 
         for (let i = 0; i < this._particleCount; i++) {
 
             const stride = 4;
 
-            startPositionData[i * stride]     = this._startData[i * 3] * 1;      // posX
-            startPositionData[i * stride + 1] = this._startData[i * 3 + 1] * 1;  // posY
-            startPositionData[i * stride + 2] = this._startData[i * 3 + 2] * 1;  // posZ
-            startPositionData[i * stride + 3] = 0.01;                            // lifetime
+            resetPositionData[i * stride]     = this._startData[i * 3];      // posX
+            resetPositionData[i * stride + 1] = this._startData[i * 3 + 1];  // posY
+            resetPositionData[i * stride + 2] = this._startData[i * 3 + 2];  // posZ
+            resetPositionData[i * stride + 3] = 0.01;  // lifetime
 
-            particleStartPositions[i * stride]     = 0;                        // posX
-            particleStartPositions[i * stride + 1] = 0;                        // posY
-            particleStartPositions[i * stride + 2] = 0;                        // posZ
+            particleStartPositions[i * stride]     = this._startData[i * 3 + 1]; // posX
+            particleStartPositions[i * stride + 1] = this._startData[i * 3 + 2]; // posY
+            particleStartPositions[i * stride + 2] = this._startData[i * 3 + 3] ; // posZ
             particleStartPositions[i * stride + 3] = (Math.random() * 2 - 1);  // lifetime
 
         }
 
         this._startPositionBuffer = this._device.createBuffer({
             label: "Vertex buffer",
-            size: startPositionData.byteLength,
+            size: resetPositionData.byteLength,
             usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
         });
 
-        this._device.queue.writeBuffer(this._startPositionBuffer, 0, startPositionData);
+        this._device.queue.writeBuffer(this._startPositionBuffer, 0, resetPositionData);
 
         const computeShaderModule = this._device.createShaderModule({
             label: 'Compute module',
@@ -134,7 +134,11 @@ export default class Compute {
                 { binding: 2, resource: { buffer: this._uniformBuffer } }
             ],
         });
+
+        //this.updateTest(1,1);
     }
+
+    //update(){}
 
     async update(elapsed, delta) {
         // Encode commands to do the computation
