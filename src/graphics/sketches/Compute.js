@@ -1,11 +1,13 @@
+import { DracoLoader, Sphere } from "bolt-wgpu";
 import { computeShader } from "./shaders/computeShader";
+import { sceneSettings } from "../../globals/constants";
 
 const WORK_GROUP_SIZE = 64;
 
 export default class Compute {
     constructor(bolt, {
         startData,
-        particleCount = 50000,
+        particleCount = sceneSettings.PARTICLE_COUNT,
     }) {
 
         this._bolt                = bolt;
@@ -20,17 +22,19 @@ export default class Compute {
         this._readCPUBuffer       = null;
         this._startPositionBuffer = null;
 
-
-        this.init();
-
     }
 
-    init() {
+    async init() {
 
-        this._uniformData = new Float32Array([
+		const dracoLoader = new DracoLoader(this._bolt);
+		const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
+
+        this._uniformData = new Float32Array([ //TODO: convert to ArrayBuffer instead of Float32Array
             0.0, // time
             0.0, // deltaTime
-            0.25 // curlTime
+            0.25, // curlTime
+            Math.random(), // seed
+            0
         ]);
 
         this._uniformBuffer = this._device.createBuffer({
@@ -57,6 +61,30 @@ export default class Compute {
             particleStartPositions[i * stride + 3] = (Math.random() * 2 - 1);  // lifetime
 
         }
+
+        const objectScatter = bunnygeo;
+        const objectScatterIndices = new Uint32Array(objectScatter.indices);
+        const objectScatterVertices = new Float32Array(objectScatter.positions);
+
+        this._uniformData[4] = objectScatter.indices.length / 3;
+
+        this._device.queue.writeBuffer(this._uniformBuffer, 0, this._uniformData);
+
+        this._scatterIndicesBuffer = this._device.createBuffer({
+            label: "Scatter indices buffer",
+            size: objectScatterIndices.byteLength,
+            usage: window.GPUBufferUsage.INDEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+        });
+
+        this._device.queue.writeBuffer(this._scatterIndicesBuffer, 0, objectScatterIndices);
+
+        this._scatterVerticesBuffer = this._device.createBuffer({
+            label: "Scatter vertices buffer",
+            size: objectScatterVertices.byteLength,
+            usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+        });
+
+        this._device.queue.writeBuffer(this._scatterVerticesBuffer, 0, objectScatterVertices);
 
         this._startPositionBuffer = this._device.createBuffer({
             label: "Vertex buffer",
@@ -88,6 +116,16 @@ export default class Compute {
                     binding: 2,
                     visibility: window.GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" },
+                },
+                {
+                    binding: 3,
+                    visibility: window.GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    binding: 4,
+                    visibility: window.GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
                 }
             ],
         });
@@ -121,17 +159,16 @@ export default class Compute {
             usage: window.GPUBufferUsage.MAP_READ | window.GPUBufferUsage.COPY_DST,
             mapAtCreation: false,
         });
-
         
-        // Setup a bindGroup to tell the shader which
-        // buffer to use for the computation
         this._computeBindGroup = this._device.createBindGroup({
             label: 'bindGroup A',
             layout: bindGroupLayout,
             entries: [
                 { binding: 0, resource: { buffer: this._startPositionBuffer } },
                 { binding: 1, resource: { buffer: this._particleBuffer } },
-                { binding: 2, resource: { buffer: this._uniformBuffer } }
+                { binding: 2, resource: { buffer: this._uniformBuffer } },
+                { binding: 3, resource: { buffer: this._scatterVerticesBuffer } },
+                { binding: 4, resource: { buffer: this._scatterIndicesBuffer } },
             ],
         });
 

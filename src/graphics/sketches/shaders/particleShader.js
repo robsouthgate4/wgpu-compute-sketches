@@ -47,15 +47,15 @@ export const particleShader = /* wgsl */`
 
         var mvPosition = camera.view * model * vec4(in.offset.xyz, 1);
 
-        mvPosition.x += pos.x * 0.1;
-        mvPosition.y += pos.y * 0.1;
-        mvPosition.z += pos.z * 0.1;
+        mvPosition.x += pos.x * particleScale;
+        mvPosition.y += pos.y * particleScale;
+        mvPosition.z += pos.z * particleScale;
         
         var posFromLight = light.projection * light.view * model * vec4(in.offset.xyz, 1);
 
-        posFromLight.x += pos.x * 0.02;
-        posFromLight.y += pos.y * 0.02;
-        posFromLight.z += pos.z * 0.02;
+        posFromLight.x += pos.x * particleScale * 0.02;
+        posFromLight.y += pos.y * particleScale * 0.02;
+        posFromLight.z += pos.z * particleScale * 0.02;
 
         // billboard the particles
         var mvp = camera.projection * mvPosition;

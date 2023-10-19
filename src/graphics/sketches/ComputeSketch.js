@@ -2,7 +2,7 @@ import Base from "../Base";
 
 import CameraMain from "../../globals/CameraMain";
 import Controls from "../../globals/Controls";
-import { BoltWGPU, CameraOrtho,  Cube,  Node, Plane, Sphere } from "bolt-wgpu";
+import { BoltWGPU, CameraOrtho, Node, Plane, Sphere } from "bolt-wgpu";
 import Compute from "./Compute";
 import ParticleRenderer from "./ParticleRenderer";
 import ShadowRenderer from "./ShadowRenderer";
@@ -10,7 +10,7 @@ import RenderFullScreen from "./RenderFullScreen";
 import {vec3 } from "gl-matrix";
 import GeometryRenderer from "./GeometryRenderer";
 import { basicShader } from "./shaders/basicShader";
-import { basicShadowShader } from "./shaders/basicShadowShader";
+//import { basicShadowShader } from "./shaders/basicShadowShader";
 import ShadowParticleRenderer from "./ShadowParticleRenderer";
 import { floorShader } from "./shaders/floorShader";
 import { sceneSettings } from "../../globals/constants";
@@ -40,9 +40,6 @@ export default class extends Base {
 
 		this._cameraMain = CameraMain.getInstance();
 
-		// const dracoLoader = new DracoLoader(this._bolt);
-		// const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
-
 		this._light = new CameraOrtho({
 			left: -6,
 			right: 6,
@@ -59,9 +56,8 @@ export default class extends Base {
 	
 		this._controls = new Controls(this._cameraMain);
 
-		const objectGeometry                 = new Cube();
-		
-		const particleCount = 500000;
+		//const objectGeometry                 = new Sphere({ radius: 3, widthSegments: 10, heightSegments: 10 });
+		const particleCount = sceneSettings.PARTICLE_COUNT;
 		const startData                      = new Float32Array(particleCount * 3);
 
 		for (let i = 0; i < particleCount; i++) {
@@ -85,8 +81,11 @@ export default class extends Base {
 			particleCount
 		});
 
+		await this._compute.init();
+
 		this._particleNode = new Node();
-		this._particleNode.transform.positionY = 6.5;
+		this._particleNode.transform.positionY = 1.5;
+		this._particleNode.transform.scale = vec3.fromValues(50, 50, 50);
 		this._particleNode.updateModelMatrix();
 
 		const sceneBufferSize =  // view matrix + projection matrix + camera quaternion
@@ -152,15 +151,9 @@ export default class extends Base {
 
 		this._renderFullScreen = new RenderFullScreen(this._bolt, this._shadowDepthTexture);
 
-		this._cubeRenderer   = new GeometryRenderer(this._bolt, sharedData, objectGeometry, basicShadowShader);
-		this._cubeRenderer.node.transform.positionY = 2.5;
-		this._cubeRenderer.node.transform.positionX = 0;	
-		this._cubeRenderer.node.transform.scale = vec3.fromValues(1, 1, 1);
-
-		this._sphereRenderer   = new GeometryRenderer(this._bolt, sharedData, new Sphere(), basicShader);
-		this._sphereRenderer.node.transform.positionY = 2;
-		this._sphereRenderer.node.transform.positionX = 0;	
-		this._sphereRenderer.node.transform.scale = vec3.fromValues(0.2, 0.2, 0.2);
+		this._objRenderer   = new GeometryRenderer(this._bolt, sharedData, new Sphere({ radius: 3, widthSegments: 32, heightSegments: 32 }), basicShader);
+		this._objRenderer.node.transform.positionY = 6.5;
+		this._objRenderer.node.transform.positionX = 0;
 
 		this._floorRenderer    = new GeometryRenderer(this._bolt, sharedData, planeGeometry, floorShader);
 
@@ -168,8 +161,7 @@ export default class extends Base {
 			this._bolt,
 			sharedData,
 			[
-				this._cubeRenderer,
-				this._sphereRenderer
+				this._objRenderer
 			]	
 		)
 
@@ -267,6 +259,7 @@ export default class extends Base {
 				view: this._renderTextureView,
 				resolveTarget: this._bolt.context.getCurrentTexture().createView(),
 				clearValue: { r: 0.82, g: 0.82, b: 0.82, a: 1 },
+				//clearValue: { r: 0, g: 0, b: 0, a: 1 },
 				loadOp: 'clear',
 				storeOp: 'store',
 			}],
@@ -289,17 +282,11 @@ export default class extends Base {
 		
 		this._particleRenderer.update(renderPass);
 
-		//this._sphereRenderer.draw(renderPass);
-		
-		//this._cubeRenderer.node.transform.positionY = 1;
-		//this._cubeRenderer.node.transform.rotateY(0.01);
-		
-		//this._cubeRenderer.draw(renderPass);
+		//this._objRenderer.draw(renderPass);
 		this._floorRenderer.draw(renderPass);
 		//this._renderFullScreen.render(renderPass);
 		
 		renderPass.end();
-		
 
 		this._device.queue.submit([commandEncoder.finish()]);
 

@@ -23,7 +23,7 @@ export const particleDepthShader = /* wgsl */`
     @vertex fn vs( in: VertexInput ) -> VertexOutput {
         var out: VertexOutput;
 
-        var pos = in.position.xyz * 0.1;
+        var pos = in.position.xyz * ${sceneSettings.PARTICLE_SCALE};
 
         //pos += in.offset.xyz;
 
