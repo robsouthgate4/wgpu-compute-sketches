@@ -24,7 +24,8 @@ export const particleShader = /* wgsl */`
     struct VertexInput {
         @location(0) position: vec3f,
         @location(1) offset: vec3f,
-        @location(2) life: f32,
+        @location(2) vel: f32,
+        @location(3) life: f32,
     };
 
     struct VertexOutput {
@@ -65,7 +66,7 @@ export const particleShader = /* wgsl */`
         out.lightSpacePos = posFromLight;
         out.color         = vec4( 0.0, 0.0, 0.0, 1.0 );
         out.uv            = in.position.xy * 2.;
-        out.life         = in.life;
+        out.life          = in.life;
         return out;
     }
 
@@ -73,13 +74,24 @@ export const particleShader = /* wgsl */`
 
         var shadow    = 1 - shadowCalculation(in.lightSpacePos, shadowMap, shadowSampler, ${sceneSettings.SHADOW_MAP_SIZE}, 2, 0.0003);
 
-        // var N = normalize(in.localPos * 2.0 - 1.0);
+        // create a normal for this quad that replicates a sphere
+        var N = normalize(vec3(in.uv.xy, sqrt(1.0 - dot(in.uv.xy, in.uv.xy))));
 
-        // // create basic diffuse lighting
-        // var lightDir = normalize(vec3(0.5, 0.5, 0.5));
+        // diffuse lighting
+        var lightPositon = vec3(0.0, 0.0, 20.0);
+        var lightDir = normalize(lightPositon - in.localPos);
+        var NdotL = dot(N, lightDir);
+        var diffuse = max(NdotL, 0.0);
 
-        var meshCol   = vec3(0.9);
-        var shadowCol = vec3(0.5);
+        // specular lighting
+        var viewDir = normalize(-in.localPos);
+        var reflectDir = reflect(-lightDir, N);
+        var specular = pow(max(dot(viewDir, reflectDir), 0.0), 24.0);
+
+        var ambient = vec3(1.0);
+
+        var meshCol   = ambient;
+        var shadowCol = ambient * 0.3;
         var outCol    = mix(meshCol, shadowCol, shadow);
 
         var mask = 1.0 - step( 0.55, length(in.uv + vec2( 0.0, 0.3 )) );
@@ -88,6 +100,6 @@ export const particleShader = /* wgsl */`
             discard;
         }
 
-        return vec4( outCol, 1.0 );
+        return vec4( outCol * diffuse + vec3(specular), 1.0 );
     }
 `

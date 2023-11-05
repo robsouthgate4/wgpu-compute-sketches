@@ -72,7 +72,10 @@ export default class ShadowParticleRenderer {
         };
 
         const particleInstanceByteSize =
-            4 * Float32Array.BYTES_PER_ELEMENT;
+			3 * Float32Array.BYTES_PER_ELEMENT + // position
+			1 * Float32Array.BYTES_PER_ELEMENT + // padding
+			3 * Float32Array.BYTES_PER_ELEMENT + // velocity
+			1 * Float32Array.BYTES_PER_ELEMENT; // lifetime
 
         this._particleInstanceLayout = {
             // instanced particles buffer

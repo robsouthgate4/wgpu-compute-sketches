@@ -1,5 +1,3 @@
-
-import { Cube, Sphere } from "bolt-wgpu";
 import { particleShader } from "./shaders/particleShader";
 
 export default class ParticleRenderer {
@@ -33,13 +31,6 @@ export default class ParticleRenderer {
 
 	async init() {
 
-		//const geo = new Sphere();
-
-		//const vertices = new Float32Array(geo.positions);
-		//const indices = new Uint32Array(geo.indices);
-
-		//this._indexCount = indices.length;
-
 		// MESH GEOMETRY SETUP
 		const vertices = new Float32Array([
 			-0.5, -0.5, 0.0,
@@ -66,7 +57,9 @@ export default class ParticleRenderer {
 		}
 
 		const particleInstanceByteSize =
-			3 * Float32Array.BYTES_PER_ELEMENT + // offset
+			3 * Float32Array.BYTES_PER_ELEMENT + // position
+			1 * Float32Array.BYTES_PER_ELEMENT + // padding
+			3 * Float32Array.BYTES_PER_ELEMENT + // velocity
 			1 * Float32Array.BYTES_PER_ELEMENT; // lifetime
 
 
@@ -82,9 +75,15 @@ export default class ParticleRenderer {
 					format: 'float32x3',
 				},
 				{
-					// instance lifetime
+					// instance velocity
 					shaderLocation: 2,
 					offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+					format: 'float32x3'
+				},
+				{
+					// instance lifetime
+					shaderLocation: 3,
+					offset: 6 * Float32Array.BYTES_PER_ELEMENT,
 					format: 'float32'
 				}
 			],

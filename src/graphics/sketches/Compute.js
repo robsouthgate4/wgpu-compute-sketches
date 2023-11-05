@@ -1,4 +1,4 @@
-import { DracoLoader, Sphere } from "bolt-wgpu";
+import { Cube, DracoLoader, Plane, Sphere } from "bolt-wgpu";
 import { computeShader } from "./shaders/computeShader";
 import { sceneSettings } from "../../globals/constants";
 
@@ -10,30 +10,31 @@ export default class Compute {
         particleCount = sceneSettings.PARTICLE_COUNT,
     }) {
 
-        this._bolt                = bolt;
-        this._particleCount       = particleCount;
-        this._startData           = startData;
-        this._device              = this._bolt.device;
-        this._particleBuffer      = null;
-        this._uniformBuffer       = null;
-        this._uniformData         = null;
-        this._computePipeline     = null;
-        this._computeBindGroup    = null;
-        this._readCPUBuffer       = null;
+        this._bolt = bolt;
+        this._particleCount = particleCount;
+        this._startData = startData;
+        this._device = this._bolt.device;
+        this._particleBuffer = null;
+        this._uniformBuffer = null;
+        this._uniformData = null;
+        this._computePipeline = null;
+        this._computeBindGroup = null;
+        this._readCPUBuffer = null;
         this._startPositionBuffer = null;
 
     }
 
     async init() {
 
-		const dracoLoader = new DracoLoader(this._bolt);
-		const bunnygeo = await dracoLoader.load("static/models/draco/bunny.drc");
+        const dracoLoader = new DracoLoader(this._bolt);
+        const geometryToScatter = await dracoLoader.load("static/models/draco/bunny.drc");
 
-        this._uniformData = new Float32Array([ //TODO: convert to ArrayBuffer instead of Float32Array
+        //TODO: convert to ArrayBuffer instead of Float32Array so we can have ints and floats in the same buffer
+        this._uniformData = new Float32Array([ 
             0.0, // time
             0.0, // deltaTime
-            0.25, // curlTime
-            Math.random(), // seed
+            0.15, // curlTime
+            Math.random() * 10, // seed
             0
         ]);
 
@@ -43,26 +44,41 @@ export default class Compute {
             usage: window.GPUBufferUsage.UNIFORM | window.GPUBufferUsage.COPY_DST,
         });
 
-        const resetPositionData = new Float32Array(this._particleCount * 4);
-        const particleStartPositions = new Float32Array(this._particleCount * 4);
+        const particleByteSize =
+            3 * 4 + // 3 floats for position
+            1 * 4 + // 1 float for padding
+            3 * 4 + // 3 floats for velocity
+            1 * 4; // 1 float for lifetime
+
+        const resetParticleData = new Float32Array(this._particleCount * 4);
+        const particleData = new Float32Array(this._particleCount * 8);
+
+        const resetParticleDataStride = 4; // Separate stride for resetParticleData since its layout differs.
+        const particleDataStride = 8; // Correct stride for particleData.
+        
+        const objectScatter = geometryToScatter;
 
         for (let i = 0; i < this._particleCount; i++) {
+            // Setup for resetParticleData which has only four elements per particle
+            // resetParticleData[i * resetParticleDataStride] = this._startData[i * 3];     // posX
+            // resetParticleData[i * resetParticleDataStride + 1] = this._startData[i * 3 + 1]; // posY
+            // resetParticleData[i * resetParticleDataStride + 2] = this._startData[i * 3 + 2]; // posZ
+            resetParticleData[i * resetParticleDataStride + 3] = Math.random() * 2 - 1;                   // lifetime
 
-            const stride = 4;
+        
+            particleData[i * particleDataStride] = objectScatter.positions[i * 3];     // posX
+            particleData[i * particleDataStride + 1] = objectScatter.positions[i * 3 + 1]; // posY
+            particleData[i * particleDataStride + 2] = objectScatter.positions[i * 3 + 2]; // posZ
+            
+            //particleData[i * particleDataStride + 3] = 4;                         // padding
 
-            resetPositionData[i * stride]     = this._startData[i * 3];      // posX
-            resetPositionData[i * stride + 1] = this._startData[i * 3 + 1];  // posY
-            resetPositionData[i * stride + 2] = this._startData[i * 3 + 2];  // posZ
-            resetPositionData[i * stride + 3] = 0.01;  // lifetime
+            // particleData[i * particleDataStride + 4] = 0;                         // velocityX
+            // particleData[i * particleDataStride + 5] = 0;                         // velocityY
+            // particleData[i * particleDataStride + 6] = 0;                         // velocityZ
 
-            particleStartPositions[i * stride]     = this._startData[i * 3 + 1]; // posX
-            particleStartPositions[i * stride + 1] = this._startData[i * 3 + 2]; // posY
-            particleStartPositions[i * stride + 2] = this._startData[i * 3 + 3] ; // posZ
-            particleStartPositions[i * stride + 3] = (Math.random() * 2 - 1);  // lifetime
-
+            particleData[i * particleDataStride + 7] = Math.random() * 2 - 1;      // lifetime
         }
 
-        const objectScatter = bunnygeo;
         const objectScatterIndices = new Uint32Array(objectScatter.indices);
         const objectScatterVertices = new Float32Array(objectScatter.positions);
 
@@ -88,11 +104,11 @@ export default class Compute {
 
         this._startPositionBuffer = this._device.createBuffer({
             label: "Vertex buffer",
-            size: resetPositionData.byteLength,
+            size: resetParticleData.byteLength,
             usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
         });
 
-        this._device.queue.writeBuffer(this._startPositionBuffer, 0, resetPositionData);
+        this._device.queue.writeBuffer(this._startPositionBuffer, 0, resetParticleData);
 
         const computeShaderModule = this._device.createShaderModule({
             label: 'Compute module',
@@ -144,22 +160,25 @@ export default class Compute {
             },
         });
 
+
+
+
         this._particleBuffer = this._device.createBuffer({
             label: 'particle buffer A',
-            size: particleStartPositions.byteLength,
+            size: this._particleCount * particleByteSize,
             usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
         }),
 
-        this._device.queue.writeBuffer(this._particleBuffer, 0, particleStartPositions);
+            this._device.queue.writeBuffer(this._particleBuffer, 0, particleData);
 
         // create a buffer on the GPU to get a copy of the results
         this._readCPUBuffer = this._device.createBuffer({
             label: 'result buffer',
-            size: particleStartPositions.byteLength,
+            size: this._particleCount * particleByteSize,
             usage: window.GPUBufferUsage.MAP_READ | window.GPUBufferUsage.COPY_DST,
             mapAtCreation: false,
         });
-        
+
         this._computeBindGroup = this._device.createBindGroup({
             label: 'bindGroup A',
             layout: bindGroupLayout,
@@ -172,10 +191,10 @@ export default class Compute {
             ],
         });
 
-        //this.updateTest(1,1);
+        //this.updateTest(1, 1);
     }
 
-    //update(){}
+    //update() { }
 
     async update(elapsed, delta) {
         // Encode commands to do the computation
@@ -202,7 +221,7 @@ export default class Compute {
         const computeCommandBuffer = computeEncoder.finish();
         this._device.queue.submit([computeCommandBuffer]);
 
-        // Read the results
+        //Read the results
         // await this._readCPUBuffer.mapAsync(window.GPUMapMode.READ);
         // const result = new Float32Array(this._readCPUBuffer.getMappedRange().slice());
         // console.log(result);

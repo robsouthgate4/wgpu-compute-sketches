@@ -2,7 +2,7 @@ import Base from "../Base";
 
 import CameraMain from "../../globals/CameraMain";
 import Controls from "../../globals/Controls";
-import { BoltWGPU, CameraOrtho, Node, Plane, Sphere } from "bolt-wgpu";
+import { BoltWGPU, CameraOrtho, Node, Plane, Sphere} from "bolt-wgpu";
 import Compute from "./Compute";
 import ParticleRenderer from "./ParticleRenderer";
 import ShadowRenderer from "./ShadowRenderer";
@@ -10,7 +10,6 @@ import RenderFullScreen from "./RenderFullScreen";
 import {vec3 } from "gl-matrix";
 import GeometryRenderer from "./GeometryRenderer";
 import { basicShader } from "./shaders/basicShader";
-//import { basicShadowShader } from "./shaders/basicShadowShader";
 import ShadowParticleRenderer from "./ShadowParticleRenderer";
 import { floorShader } from "./shaders/floorShader";
 import { sceneSettings } from "../../globals/constants";
@@ -38,13 +37,23 @@ export default class extends Base {
 
 	async init() {
 
+
+		// const texture = new Texture2D({
+		// 	device: this._device,
+		// 	path: "static/textures/matcap/matcap3.jpeg"
+		// })
+
+		// await texture.loadImageBitmap();
+
 		this._cameraMain = CameraMain.getInstance();
 
+		const size  = 11;
+
 		this._light = new CameraOrtho({
-			left: -6,
-			right: 6,
-			top: 6,
-			bottom: -6,
+			left: -size,
+			right: size,
+			top: size,
+			bottom: -size,
 			near: 0.1,
 			far: 100,
 			position: vec3.fromValues(0, 20, -1),
@@ -65,16 +74,16 @@ export default class extends Base {
 			const r = Math.random();
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.random() * Math.PI * 2;
-			const x = Math.sin(theta) * Math.cos(phi) * r * 3.5;
-			const y = Math.cos(theta) * r * 3.5;
-			const z = Math.sin(theta) * Math.sin(phi) * r * 3.5;
-			startData[i * 3] = x;
-			startData[i * 3 + 1] = y;
-			startData[i * 3 + 2] = z;
+			const x = Math.sin(theta) * Math.cos(phi) * r * 0.01;
+			const y = Math.cos(theta) * r * 0.01;
+			const z = 1;
+			startData[i * 3] = x * 1;
+			startData[i * 3 + 1] = y * 1;
+			startData[i * 3 + 2] = z * 0;
 		}
 
 
-		const planeGeometry = new Plane({ width: 1, height: 1, widthSegments: 10, heightSegments: 10 });
+		const planeGeometry = new Plane({ width: 1, height: 1, widthSegments: 4, heightSegments: 4 });
 
 		this._compute = new Compute(this._bolt, {
 			startData,
@@ -84,7 +93,7 @@ export default class extends Base {
 		await this._compute.init();
 
 		this._particleNode = new Node();
-		this._particleNode.transform.positionY = 1.5;
+		this._particleNode.transform.positionY = 2.0;
 		this._particleNode.transform.scale = vec3.fromValues(50, 50, 50);
 		this._particleNode.updateModelMatrix();
 
@@ -149,7 +158,7 @@ export default class extends Base {
 
 		this._particleRenderer = new ParticleRenderer(this._bolt, sharedData);
 
-		this._renderFullScreen = new RenderFullScreen(this._bolt, this._shadowDepthTexture);
+		this._debugQuad = new RenderFullScreen(this._bolt, this._shadowDepthTexture);
 
 		this._objRenderer   = new GeometryRenderer(this._bolt, sharedData, new Sphere({ radius: 3, widthSegments: 32, heightSegments: 32 }), basicShader);
 		this._objRenderer.node.transform.positionY = 6.5;
@@ -228,7 +237,7 @@ export default class extends Base {
 			this.resize();
 
 			this._particleRenderer.resizeTextures();
-			this._renderFullScreen.resizeTextures();
+			this._debugQuad.resizeTextures();
 			this._currentCanvasWidth = this._bolt.canvas.width;
 			this._currentCanvasHeight = this._bolt.canvas.height;
 
@@ -284,7 +293,7 @@ export default class extends Base {
 
 		//this._objRenderer.draw(renderPass);
 		this._floorRenderer.draw(renderPass);
-		//this._renderFullScreen.render(renderPass);
+		//this._debugQuad.render(renderPass);
 		
 		renderPass.end();
 
