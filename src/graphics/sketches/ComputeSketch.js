@@ -37,7 +37,6 @@ export default class extends Base {
 
 	async init() {
 
-
 		// const texture = new Texture2D({
 		// 	device: this._device,
 		// 	path: "static/textures/matcap/matcap3.jpeg"
@@ -93,8 +92,8 @@ export default class extends Base {
 		await this._compute.init();
 
 		this._particleNode = new Node();
-		this._particleNode.transform.positionY = 2.0;
-		this._particleNode.transform.scale = vec3.fromValues(50, 50, 50);
+		this._particleNode.transform.positionY = 0.5;
+		this._particleNode.transform.scale = vec3.fromValues(5, 5, 5);
 		this._particleNode.updateModelMatrix();
 
 		const sceneBufferSize =  // view matrix + projection matrix + camera quaternion

@@ -78,7 +78,7 @@ export const particleShader = /* wgsl */`
         var N = normalize(vec3(in.uv.xy, sqrt(1.0 - dot(in.uv.xy, in.uv.xy))));
 
         // diffuse lighting
-        var lightPositon = vec3(0.0, 0.0, 20.0);
+        var lightPositon = vec3(10.0, 10.0, 20.0);
         var lightDir = normalize(lightPositon - in.localPos);
         var NdotL = dot(N, lightDir);
         var diffuse = max(NdotL, 0.0);
@@ -86,9 +86,9 @@ export const particleShader = /* wgsl */`
         // specular lighting
         var viewDir = normalize(-in.localPos);
         var reflectDir = reflect(-lightDir, N);
-        var specular = pow(max(dot(viewDir, reflectDir), 0.0), 24.0);
+        var specular = pow(max(dot(viewDir, reflectDir), 0.0), 1.0);
 
-        var ambient = vec3(1.0);
+        var ambient = vec3(0.5, 0.5, 0.5) + (10.0 * in.life);
 
         var meshCol   = ambient;
         var shadowCol = ambient * 0.3;
@@ -100,6 +100,6 @@ export const particleShader = /* wgsl */`
             discard;
         }
 
-        return vec4( outCol * diffuse + vec3(specular), 1.0 );
+        return vec4( outCol * (diffuse + (specular * 0.5)), 1.0 );
     }
 `

@@ -21,16 +21,16 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
         life: f32
     }
 
-    struct Vertex {
-        pos: vec3<f32>,
-    };
-
     @group(0) @binding(0) var<storage, read> startData: array<StartData>;
     @group(0) @binding(1) var<storage, read_write> particles: array<Particle>;
     @group(0) @binding(2) var<uniform> uniforms: Uniforms;
 
     @group(0) @binding(3) var<storage, read> scatterVertices: array<f32>;
     @group(0) @binding(4) var<storage, read> scatterIndices: array<u32>;
+
+    @group(0) @binding(5) var<storage, read> scatterJoints: array<mat4x4<f32>>;
+    @group(0) @binding(6) var<storage, read> scatterWeights: array<f32>;
+    @group(0) @binding(7) var<storage, read> scatterJointIndices: array<u32>;
     
     ${noiseFunctions()}
 
@@ -53,11 +53,16 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
     ) {
         var i = cell.x;
 
-        //particles[i].life = 3.;	
         var currentLife = particles[i].life;
-        
-        //particles[i].pos = vec3(0., 0, 0.);// + (curlNoise(startPos * 1. + (sin( uniforms.time * 10 ) * 10)) * 0.001);
-        //particles[i].life = startData[i].life;
+
+        var vert = vec3(
+            scatterVertices[i * 3],
+            scatterVertices[i * 3 + 1],
+            scatterVertices[i * 3 + 2]
+        );
+
+
+        //particles[i].pos = vert;
 
         if( currentLife > 1 ) {
 
@@ -84,13 +89,10 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
             var w = 1.0 - u - v;
 
             var randomPosition = u * vertexA + v * vertexB + w * vertexC;
-
-            // rotate the random position
-            randomPosition = rotationY(-uniforms.time * 1) * randomPosition;
-
-            //randomPosition.x += sin( uniforms.time * 0.5 ) * 0.1;
             
             var startPos = randomPosition;
+
+            //startPos.x += sin( uniforms.time * 2 ) * 1;
 
             // reset particle
             particles[i].pos = startPos; //+ (curlNoise(startPos * 1. + (sin( uniforms.time * 10 ) * 10)) * 0.001);
@@ -98,12 +100,13 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
             particles[i].life = startData[i].life;	
             // move particle
         }else {
-            var curl = curlNoise(particles[i].pos * 30.) * 0.0275;
+            var curl = curlNoise(particles[i].pos * 3.) * 0.2175;
 
             //particles[i].vel += vec3(0, -0.0001, 0);
             particles[i].pos += curl * uniforms.delta;
-            //particles[i].pos.y += 0.04 * uniforms.delta;
-            particles[i].life += 0.01;
+            particles[i].pos.y -= 0.34 * uniforms.delta;
+            particles[i].pos.z -= 0.34 * uniforms.delta;
+            particles[i].life += 0.00625;
         }
 
     }

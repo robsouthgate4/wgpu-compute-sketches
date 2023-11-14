@@ -60,14 +60,13 @@ export const floorShader = /* wgsl */`
 
         var shadow    = 1 - shadowCalculation(in.lightSpacePos, shadowMap, samp, ${sceneSettings.SHADOW_MAP_SIZE}, 1., 0.0001);
 
-        var meshCol   = vec3(0.6);
-        var shadowCol = vec3(0.5);
+        var meshCol   = vec3(0.82, 0.82, 0.823);
+        var shadowCol = meshCol * 0.5;
         var outCol    = mix(meshCol, shadowCol, shadow);
 
-        //var outCol = meshCol;
 
         var mask = smoothstep(0.0, 0.3, length(in.uv - vec2( 0.5 )));
 
-        return vec4(mix(outCol, vec3(0.82), mask), 1);
+        return vec4(mix(outCol, vec3(0.82, 0.82, 0.82), mask), 1);
     }
 `

@@ -1,6 +1,9 @@
-import { Cube, DracoLoader, Plane, Sphere } from "bolt-wgpu";
+import { Node, SkinLoader} from "bolt-wgpu";
 import { computeShader } from "./shaders/computeShader";
 import { sceneSettings } from "../../globals/constants";
+import Skin from "../skin-loader/Skin";
+import BakedAnimation from "../BakedAnimation";
+import { vec3 } from "gl-matrix";
 
 const WORK_GROUP_SIZE = 64;
 
@@ -21,13 +24,55 @@ export default class Compute {
         this._computeBindGroup = null;
         this._readCPUBuffer = null;
         this._startPositionBuffer = null;
+        this._skinNode = new Node();
+        this._animation = null;
 
     }
 
     async init() {
 
-        const dracoLoader = new DracoLoader(this._bolt);
-        const geometryToScatter = await dracoLoader.load("static/models/draco/bunny.drc");
+        //this._skinNode.transform.scale = vec3.fromValues(0.1, 0.1, 0.1);
+
+		const loader = new SkinLoader(this._bolt);
+		await loader.load("static/models/gltf/character/running-woman2.glb");
+		const geometries = loader.geometries;
+        const skins = loader.skins;
+        const animations = loader.animations;
+
+        this._animation = new BakedAnimation(animations);
+        this._animation.runAnimation("Armature|mixamo.com|Layer0");
+        const joints = Object.values(this._animation._currentAnimation).map((obj) => obj.node );
+
+        this._skin = new Skin(joints, skins[0].bindTransforms);
+
+        const geometryData = geometries[1][0];
+        const geometryToScatter = geometryData.geometry;
+        const jointIndices = geometryData.joints;
+        const jointWeights = geometryData.weights;
+
+        this._jointDataBuffer = this._device.createBuffer({
+            label: "Joint data buffer",
+            size: this._skin.jointData.byteLength,
+            usage: window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+        });
+
+        this._device.queue.writeBuffer(this._jointDataBuffer, 0, this._skin.jointData);
+
+        this._jointIndicesBuffer = this._device.createBuffer({
+            label: "Joint indices buffer",
+            size: jointIndices.data.byteLength,
+            usage: window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+        });
+
+        this._device.queue.writeBuffer(this._jointIndicesBuffer, 0, jointIndices.data);
+
+        this._jointWeightsBuffer = this._device.createBuffer({
+            label: "Joint weights buffer",
+            size: jointWeights.data.byteLength,
+            usage: window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
+        });
+
+        this._device.queue.writeBuffer(this._jointWeightsBuffer, 0, jointWeights.data);
 
         //TODO: convert to ArrayBuffer instead of Float32Array so we can have ints and floats in the same buffer
         this._uniformData = new Float32Array([ 
@@ -93,10 +138,11 @@ export default class Compute {
         });
 
         this._device.queue.writeBuffer(this._scatterIndicesBuffer, 0, objectScatterIndices);
-
+        
+        const svb = this._particleCount * 3 * 4 + 1 * 4;
         this._scatterVerticesBuffer = this._device.createBuffer({
             label: "Scatter vertices buffer",
-            size: objectScatterVertices.byteLength,
+            size: svb,
             usage: window.GPUBufferUsage.VERTEX | window.GPUBufferUsage.STORAGE | window.GPUBufferUsage.COPY_SRC | window.GPUBufferUsage.COPY_DST,
         });
 
@@ -142,6 +188,21 @@ export default class Compute {
                     binding: 4,
                     visibility: window.GPUShaderStage.COMPUTE,
                     buffer: { type: "read-only-storage" },
+                },
+                {
+                    binding: 5,
+                    visibility: window.GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    binding: 6,
+                    visibility: window.GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    binding: 7,
+                    visibility: window.GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
                 }
             ],
         });
@@ -159,8 +220,6 @@ export default class Compute {
                 entryPoint: 'computeMain',
             },
         });
-
-
 
 
         this._particleBuffer = this._device.createBuffer({
@@ -188,6 +247,9 @@ export default class Compute {
                 { binding: 2, resource: { buffer: this._uniformBuffer } },
                 { binding: 3, resource: { buffer: this._scatterVerticesBuffer } },
                 { binding: 4, resource: { buffer: this._scatterIndicesBuffer } },
+                { binding: 5, resource: { buffer: this._jointDataBuffer } },
+                { binding: 6, resource: { buffer: this._jointWeightsBuffer  } },
+                { binding: 7, resource: { buffer: this._jointIndicesBuffer } },
             ],
         });
 
@@ -197,6 +259,16 @@ export default class Compute {
     //update() { }
 
     async update(elapsed, delta) {
+
+        this._animation.playFrame(0.3);
+        this._animation.update(elapsed, delta);
+        this._skin.update(this._skinNode);
+        this._skinNode.updateModelMatrix();
+
+        console.log(this._skin.jointData);
+
+        this._device.queue.writeBuffer(this._jointDataBuffer, 0, this._skin.jointData);
+
         // Encode commands to do the computation
         const computeEncoder = this._device.createCommandEncoder({
             label: 'compute encoder',
