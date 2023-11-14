@@ -100,6 +100,7 @@ export const particleShader = /* wgsl */`
             discard;
         }
 
-        return vec4( outCol * (diffuse + (specular * 0.5)), 1.0 );
+        return vec4( outCol * (diffuse), 1.0 );
     }
 `
+

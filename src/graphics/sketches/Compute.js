@@ -261,11 +261,11 @@ export default class Compute {
     async update(elapsed, delta) {
 
         this._animation.playFrame(0.3);
-        this._animation.update(elapsed, delta);
+        //this._animation.update(elapsed, delta);
         this._skin.update(this._skinNode);
         this._skinNode.updateModelMatrix();
 
-        console.log(this._skin.jointData);
+        //console.log(this._skin.jointData);
 
         this._device.queue.writeBuffer(this._jointDataBuffer, 0, this._skin.jointData);
 

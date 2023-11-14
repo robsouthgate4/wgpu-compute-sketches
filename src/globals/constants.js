@@ -30,7 +30,7 @@ const sceneSettings = {
   USE_GUI: false || (debug && debugGui),
   SHADOW_MAP_SIZE: 1024,
   PARTICLE_SCALE: 0.085,
-  PARTICLE_COUNT: 700000,
+  PARTICLE_COUNT: 100000,
   LIGHT_NEAR: 0.1,
   LIGHT_FAR: 100,
 };
