@@ -29,7 +29,7 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
     @group(0) @binding(3) var<storage, read> scatterVertices: array<f32>;
     @group(0) @binding(4) var<storage, read> scatterIndices: array<u32>;
 
-    @group(0) @binding(5) var<storage, read> scatterJoints: array<mat4x4<f32>>;
+    @group(0) @binding(5) var<storage, read> scatterJoints: array<mat4x4f>;
     @group(0) @binding(6) var<storage, read> scatterWeights: array<f32>;
     @group(0) @binding(7) var<storage, read> scatterJointIndices: array<u32>;
     
@@ -39,46 +39,67 @@ export const computeShader = (WORK_GROUP_SIZE = 64) => /* wgsl */`
         return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
     }
 
-    // fn getPosition(index: u32) -> vec3f {
-    //     let offset = index * vertex.positionStride + vertex.positionOffset;
-    //     return vec3f(positions[offset],
-    //                  positions[offset + 1],
-    //                  positions[offset + 2]);
-    // }
+    fn getPosition(index: u32) -> vec3f {
+        let offset = index * 3;
+        return vec3f(scatterVertices[offset],
+                     scatterVertices[offset + 1],
+                     scatterVertices[offset + 2]);
+    }
 
-    // fn getJoints(index: u32) -> vec4u {
-    //     let offset = index * vertex.jointStride + vertex.jointOffset;
-    //     return vec4u(joints[offset],
-    //                  joints[offset + 1],
-    //                  joints[offset + 2],
-    //                  joints[offset + 3]);
-    // }
+    fn getJoints(index: u32) -> vec4u {
+        let offset = index * 4;
+        return vec4u(scatterJointIndices[offset],
+                     scatterJointIndices[offset + 1],
+                     scatterJointIndices[offset + 2],
+                     scatterJointIndices[offset + 3]);
+    }
+
+    fn getWeights(index: u32) -> vec4f {
+        let offset = index * 4;
+        return vec4f(scatterWeights[offset],
+                     scatterWeights[offset + 1],
+                     scatterWeights[offset + 2],
+                     scatterWeights[offset + 3]);
+    }
+
+    fn getJoints8(index: u32) -> vec4u {
+        let offset = index * 4;
+        let packedJoints = scatterJointIndices[offset];
+        return vec4u((packedJoints & 0xFF),
+                     (packedJoints & 0xFF00) >> 8,
+                     (packedJoints & 0xFF0000) >> 16,
+                     (packedJoints & 0xFF000000) >> 24);
+    }
+
+    fn getSkinMatrix(joints: vec4u, weights: vec4f) -> mat4x4f {
+        let joint0 = scatterJoints[joints.x];
+        let joint1 = scatterJoints[joints.y];
+        let joint2 = scatterJoints[joints.z];
+        let joint3 = scatterJoints[joints.w];
       
-    // fn getWeights(index: u32) -> vec4f {
-    //     let offset = index * vertex.weightStride + vertex.weightOffset;
-    //     return vec4f(weights[offset],
-    //                  weights[offset + 1],
-    //                  weights[offset + 2],
-    //                  weights[offset + 3]);
-    // }
+        return joint0 * weights.x +
+               joint1 * weights.y +
+               joint2 * weights.z +
+               joint3 * weights.w;
+    }
+
+    
 
     @compute @workgroup_size(${WORK_GROUP_SIZE}) fn computeMain(
     @builtin(global_invocation_id) cell: vec3<u32>
     ) {
         var i = cell.x;
+        
+        if (i >= ${sceneSettings.PARTICLE_COUNT}) { return; }
 
         var currentLife = particles[i].life;
 
-        var vert = vec3(
-            scatterVertices[i * 3],
-            scatterVertices[i * 3 + 1],
-            scatterVertices[i * 3 + 2]
-        );
+        var vert = getPosition(i);
 
-        if (i >= ${sceneSettings.PARTICLE_COUNT}) { return; }
-
-
-        particles[i].pos = vert;
+        var skinMatrix = getSkinMatrix(getJoints8(i), getWeights(i));
+        
+        particles[i].pos = ( skinMatrix * vec4f( vert, 1.0 ) ).xyz;
+        //particles[i].pos = vert;
 
         // if( currentLife > 1 ) {
 

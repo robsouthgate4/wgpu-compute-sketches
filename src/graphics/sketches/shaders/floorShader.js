@@ -64,7 +64,6 @@ export const floorShader = /* wgsl */`
         var shadowCol = meshCol * 0.5;
         var outCol    = mix(meshCol, shadowCol, shadow);
 
-
         var mask = smoothstep(0.0, 0.3, length(in.uv - vec2( 0.5 )));
 
         return vec4(mix(outCol, vec3(0.82, 0.82, 0.82), mask), 1);

@@ -1,4 +1,5 @@
 import { mat4 } from "gl-matrix";
+import { flattenFloatArray } from "../../utils";
 
 export default class Skin {
 
@@ -30,7 +31,10 @@ export default class Skin {
           mat4size
         )
       );
+      
     }
+
+    console.log(this._jointMatrices);
 
   }
 

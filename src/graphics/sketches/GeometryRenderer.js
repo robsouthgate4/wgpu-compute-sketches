@@ -222,6 +222,10 @@ export default class GeometryRenderer {
 		return this._node;
 	}
 
+	get transform() {
+		return this._node.transform;
+	}
+
 	get vertexBufferLayout() {
 		return this._vertexBufferLayout;
 	}
